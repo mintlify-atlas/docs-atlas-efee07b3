@@ -1,0 +1,253 @@
+---
+title: Docker Deployment
+description: Deploy Underpost applications using Docker containers
+---
+
+# Docker Deployment
+
+Underpost provides a production-ready Dockerfile based on Rocky Linux 9 with Node.js 24.x pre-installed.
+
+## Dockerfile
+
+The official Underpost Dockerfile (`source/Dockerfile`):
+
+```dockerfile
+FROM rockylinux:9
+
+# Update and install required packages
+RUN dnf -y update && \
+    dnf -y install epel-release && \
+    dnf -y install --allowerasing \
+    bzip2 \
+    sudo \
+    curl \
+    net-tools \
+    openssh-server \
+    nano \
+    vim-enhanced \
+    less \
+    openssl-devel \
+    wget \
+    git \
+    gnupg2 \
+    libnsl \
+    perl && \
+    dnf clean all
+
+# Install Node.js
+RUN curl -fsSL https://rpm.nodesource.com/setup_24.x | bash -
+RUN dnf install nodejs -y
+RUN dnf clean all
+
+# Verify Node.js and npm versions
+RUN node --version
+RUN npm --version
+
+# Install underpost ci/cd cli
+RUN npm install -g underpost
+RUN underpost --version
+
+# Create working directory
+RUN mkdir /home/dd
+VOLUME /home/dd
+WORKDIR /home/dd
+
+# Expose necessary ports
+EXPOSE 22
+EXPOSE 80
+EXPOSE 443
+EXPOSE 3000-3100
+EXPOSE 4000-4100
+```
+
+## Building the Image
+
+<Steps>
+  <Step title="Clone the repository">
+    ```bash
+    git clone https://github.com/underpostnet/pwa-microservices-template.git
+    cd pwa-microservices-template
+    ```
+  </Step>
+
+  <Step title="Build the Docker image">
+    ```bash
+    docker build -t rockylinux9-underpost:v3.0.2 .
+    ```
+  </Step>
+
+  <Step title="Verify the image">
+    ```bash
+    docker images | grep underpost
+    ```
+  </Step>
+</Steps>
+
+## Running Containers
+
+### Development Mode
+
+Run Underpost in development mode with hot reloading:
+
+```bash
+docker run -d \
+  --name underpost-dev \
+  -p 4001:4001 \
+  -p 4002:4002 \
+  -p 4003:4003 \
+  -v $(pwd):/home/dd \
+  rockylinux9-underpost:v3.0.2 \
+  npm run dev
+```
+
+### Production Mode
+
+Run Underpost in production mode:
+
+```bash
+docker run -d \
+  --name underpost-prod \
+  -p 80:4001 \
+  -p 443:4003 \
+  -v $(pwd):/home/dd \
+  --restart unless-stopped \
+  rockylinux9-underpost:v3.0.2 \
+  npm run prod-img
+```
+
+## Docker Compose
+
+Create a `docker-compose.yml` for multi-service deployments:
+
+```yaml
+version: '3.8'
+
+services:
+  underpost:
+    image: rockylinux9-underpost:v3.0.2
+    container_name: underpost-app
+    ports:
+      - "4001:4001"
+      - "4002:4002"
+      - "4003:4003"
+    volumes:
+      - ./:/home/dd
+    environment:
+      - NODE_ENV=production
+    command: npm run prod-img
+    restart: unless-stopped
+
+  mongodb:
+    image: mongo:latest
+    container_name: underpost-mongo
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=admin
+      - MONGO_INITDB_ROOT_PASSWORD=password
+    volumes:
+      - mongo-data:/data/db
+    restart: unless-stopped
+
+  valkey:
+    image: valkey/valkey:latest
+    container_name: underpost-valkey
+    ports:
+      - "6379:6379"
+    command: valkey-server --port 6379
+    restart: unless-stopped
+
+volumes:
+  mongo-data:
+```
+
+### Start the stack:
+
+```bash
+docker-compose up -d
+```
+
+## Volume Mounting
+
+The Dockerfile defines `/home/dd` as the working directory and volume:
+
+```bash
+# Mount your project directory
+docker run -v /path/to/your/project:/home/dd rockylinux9-underpost:v3.0.2
+```
+
+## Exposed Ports
+
+| Port | Service |
+|------|----------|
+| 22 | SSH |
+| 80 | HTTP |
+| 443 | HTTPS |
+| 3000-3100 | Application servers |
+| 4000-4100 | Microservices (default: 4001-4004) |
+
+## Environment Variables
+
+Pass environment variables to the container:
+
+<CodeGroup>
+
+```bash Command Line
+docker run -e NODE_ENV=production \
+  -e PORT=4001 \
+  rockylinux9-underpost:v3.0.2
+```
+
+```bash .env File
+docker run --env-file .env.production \
+  rockylinux9-underpost:v3.0.2
+```
+
+</CodeGroup>
+
+## Health Checks
+
+Add health checks to your Docker setup:
+
+```dockerfile
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+  CMD curl -f http://localhost:4001/health || exit 1
+```
+
+## Logs and Debugging
+
+```bash
+# View container logs
+docker logs -f underpost-prod
+
+# Execute commands in running container
+docker exec -it underpost-prod bash
+
+# Inspect container
+docker inspect underpost-prod
+```
+
+## Cleanup
+
+```bash
+# Stop and remove container
+docker stop underpost-prod
+docker rm underpost-prod
+
+# Remove image
+docker rmi rockylinux9-underpost:v3.0.2
+
+# Remove volumes
+docker volume prune
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Kubernetes Deployment" icon="dharmachakra" href="/deployment/kubernetes">
+    Scale your deployment with Kubernetes
+  </Card>
+  <Card title="Configuration" icon="gear" href="/concepts/configuration">
+    Configure environment variables
+  </Card>
+</CardGroup>

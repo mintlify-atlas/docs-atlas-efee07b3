@@ -1,0 +1,620 @@
+---
+title: Document API
+description: Document creation, search, sharing, and management
+---
+
+The Document API manages document resources with support for file attachments, tagging, public/private visibility, and search functionality.
+
+## Authentication
+
+- **Create/Update/Delete** - Authentication required
+- **Public Search** - No authentication required for public documents
+- **Private Documents** - Only owner can access
+
+## Endpoints
+
+### Create Document
+
+Create a new document.
+
+```http
+POST /api/document
+POST /api/document/:id
+```
+
+**Authentication Required**
+
+<ParamField body="title" type="string" required>
+  Document title
+</ParamField>
+
+<ParamField body="tags" type="array" optional>
+  Array of tag strings
+</ParamField>
+
+<ParamField body="fileId" type="string" optional>
+  Reference to uploaded File (_id)
+</ParamField>
+
+<ParamField body="mdFileId" type="string" optional>
+  Reference to markdown File (_id)
+</ParamField>
+
+<ParamField body="location" type="string" optional>
+  Document location/path
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/document', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    title: 'Getting Started Guide',
+    tags: ['tutorial', 'docs', 'public'],
+    fileId: '507f1f77bcf86cd799439011',
+    mdFileId: '507f1f77bcf86cd799439012',
+    location: '/guides/getting-started'
+  })
+});
+
+const { data } = await response.json();
+```
+
+#### Response
+
+<ResponseField name="status" type="string">
+  "success" or "error"
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Created document object
+</ResponseField>
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "507f1f77bcf86cd799439013",
+    "userId": "507f1f77bcf86cd799439010",
+    "title": "Getting Started Guide",
+    "tags": ["tutorial", "docs"],
+    "isPublic": true,
+    "fileId": "507f1f77bcf86cd799439011",
+    "mdFileId": "507f1f77bcf86cd799439012",
+    "location": "/guides/getting-started",
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "updatedAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+```
+
+<Note>
+Including "public" in the tags array automatically sets `isPublic: true` and filters "public" from the tags.
+</Note>
+
+### Get User Documents
+
+Retrieve documents owned by authenticated user with pagination and search.
+
+```http
+GET /api/document/:id?limit=50&skip=0&searchTitle=guide
+```
+
+**Authentication Required**
+
+<ParamField path="id" type="string" optional>
+  Document ID (returns single document)
+</ParamField>
+
+<ParamField query="limit" type="number" optional>
+  Results per page (default: 50)
+</ParamField>
+
+<ParamField query="skip" type="number" optional>
+  Number of results to skip (default: 0)
+</ParamField>
+
+<ParamField query="searchTitle" type="string" optional>
+  Filter by title (case-insensitive regex)
+</ParamField>
+
+<ParamField query="searchMdFile" type="string" optional>
+  Filter by markdown filename
+</ParamField>
+
+<ParamField query="searchFile" type="string" optional>
+  Filter by attached filename
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/document?limit=10&skip=0&searchTitle=guide', {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
+
+const { data } = await response.json();
+```
+
+#### Response
+
+<ResponseField name="data.data" type="array">
+  Array of document objects with populated file and user data
+</ResponseField>
+
+<ResponseField name="data.pagination" type="object">
+  Pagination metadata
+</ResponseField>
+
+<ResponseField name="data.pagination.totalCount" type="number">
+  Total matching documents
+</ResponseField>
+
+<ResponseField name="data.pagination.hasMore" type="boolean">
+  Whether more results exist
+</ResponseField>
+
+```json
+{
+  "status": "success",
+  "data": {
+    "data": [
+      {
+        "_id": "507f1f77bcf86cd799439013",
+        "userId": {
+          "_id": "507f1f77bcf86cd799439010",
+          "username": "johndoe",
+          "profileImageId": null
+        },
+        "title": "Getting Started Guide",
+        "tags": ["tutorial", "docs"],
+        "isPublic": true,
+        "fileId": {
+          "_id": "507f1f77bcf86cd799439011",
+          "name": "attachment.pdf",
+          "mimetype": "application/pdf"
+        },
+        "mdFileId": {
+          "_id": "507f1f77bcf86cd799439012",
+          "name": "content.md",
+          "mimetype": "text/markdown"
+        },
+        "createdAt": "2024-01-15T10:30:00.000Z",
+        "updatedAt": "2024-01-15T10:30:00.000Z"
+      }
+    ],
+    "pagination": {
+      "totalCount": 42,
+      "limit": 10,
+      "skip": 0,
+      "hasMore": true,
+      "search": {
+        "title": "guide",
+        "mdFile": "",
+        "file": ""
+      }
+    }
+  }
+}
+```
+
+### Search Public Documents by Tags
+
+Search public documents with tag filtering.
+
+```http
+GET /api/document/public?tags=tutorial,docs&limit=6&skip=0&cid=507f1f77bcf86cd799439013
+```
+
+<ParamField query="tags" type="string" required>
+  Comma-separated list of tags (documents must have ALL tags)
+</ParamField>
+
+<ParamField query="limit" type="number" optional>
+  Results per page (default: 6)
+</ParamField>
+
+<ParamField query="skip" type="number" optional>
+  Number of results to skip (default: 0)
+</ParamField>
+
+<ParamField query="cid" type="string" optional>
+  Comma-separated document IDs to filter
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/document/public?tags=tutorial,docs&limit=6');
+const { data } = await response.json();
+```
+
+#### Response
+
+<ResponseField name="data.data" type="array">
+  Array of matching documents
+</ResponseField>
+
+<ResponseField name="data.lastId" type="string">
+  ID of oldest document (for infinite scroll)
+</ResponseField>
+
+```json
+{
+  "status": "success",
+  "data": {
+    "data": [
+      {
+        "_id": "507f1f77bcf86cd799439013",
+        "userId": {
+          "_id": "507f1f77bcf86cd799439010",
+          "username": "johndoe",
+          "profileImageId": null,
+          "briefDescription": "Content creator"
+        },
+        "title": "Getting Started Guide",
+        "tags": ["tutorial", "docs"],
+        "isPublic": true,
+        "totalCopyShareLinkCount": 42,
+        "createdAt": "2024-01-15T10:30:00.000Z",
+        "updatedAt": "2024-01-15T10:30:00.000Z"
+      }
+    ],
+    "lastId": "507f1f77bcf86cd799439013"
+  }
+}
+```
+
+<Note>
+**Tag Filtering Behavior:**
+- Requesting `tags=tutorial,docs` returns only documents with BOTH tags
+- Special tag "public" filters to only `isPublic: true` documents
+- Authenticated users see their own documents + public documents from publishers
+- Unauthenticated users see only public documents from admin/moderator users
+</Note>
+
+### Typeahead Search (High Query)
+
+Fast typeahead search for autocomplete functionality.
+
+```http
+GET /api/document/public/high?q=getting&idPanel=panel-123&limit=10
+```
+
+<ParamField query="q" type="string" required>
+  Search query (1-100 characters)
+</ParamField>
+
+<ParamField query="idPanel" type="string" required>
+  Panel ID to filter results (prevents cross-panel contamination)
+</ParamField>
+
+<ParamField query="limit" type="number" optional>
+  Results limit (1-50, default: 10)
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/document/public/high?q=getting&idPanel=panel-123&limit=5');
+const { data } = await response.json();
+```
+
+#### Response
+
+<ResponseField name="data.data" type="array">
+  Array of matching documents (limited fields)
+</ResponseField>
+
+```json
+{
+  "status": "success",
+  "data": {
+    "data": [
+      {
+        "_id": "507f1f77bcf86cd799439013",
+        "title": "Getting Started Guide",
+        "tags": ["tutorial", "docs"],
+        "isPublic": true,
+        "userId": {
+          "_id": "507f1f77bcf86cd799439010",
+          "username": "johndoe"
+        },
+        "createdAt": "2024-01-15T10:30:00.000Z"
+      }
+    ]
+  }
+}
+```
+
+<Note>
+**Search Behavior:**
+- Multi-term queries ("react hooks") match ANY term in title OR tags
+- Query "public" (exact match) returns only `isPublic: true` documents
+- Results sorted by `createdAt` descending
+- Authenticated users see own documents + public from publishers
+- Unauthenticated users see only public documents from admin/moderator
+</Note>
+
+### Update Document
+
+Update an existing document.
+
+```http
+PUT /api/document/:id
+```
+
+**Authentication Required**
+
+<ParamField path="id" type="string" required>
+  Document ID
+</ParamField>
+
+<ParamField body="title" type="string" optional>
+  Updated title
+</ParamField>
+
+<ParamField body="tags" type="array" optional>
+  Updated tags
+</ParamField>
+
+<ParamField body="fileId" type="string" optional>
+  Updated file reference
+</ParamField>
+
+<ParamField body="mdFileId" type="string" optional>
+  Updated markdown file reference
+</ParamField>
+
+<ParamField body="mdFileName" type="string" optional>
+  Rename markdown file
+</ParamField>
+
+<ParamField body="fileName" type="string" optional>
+  Rename attached file
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/document/507f1f77bcf86cd799439013', {
+  method: 'PUT',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    title: 'Updated Guide Title',
+    tags: ['tutorial', 'updated'],
+    mdFileName: 'updated-content.md'
+  })
+});
+
+const { data } = await response.json();
+```
+
+#### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "507f1f77bcf86cd799439013",
+    "userId": "507f1f77bcf86cd799439010",
+    "title": "Updated Guide Title",
+    "tags": ["tutorial", "updated"],
+    "isPublic": false,
+    "mdFileId": "507f1f77bcf86cd799439012",
+    "updatedAt": "2024-01-15T11:00:00.000Z"
+  }
+}
+```
+
+<Note>
+When updating file references, old files are automatically cleaned up to prevent orphaned files.
+</Note>
+
+### Toggle Public Visibility
+
+Toggle document's public/private status.
+
+```http
+PATCH /api/document/:id/toggle-public
+```
+
+**Authentication Required**
+
+<ParamField path="id" type="string" required>
+  Document ID
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/document/507f1f77bcf86cd799439013/toggle-public', {
+  method: 'PATCH',
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
+
+const { data } = await response.json();
+```
+
+#### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "507f1f77bcf86cd799439013",
+    "isPublic": true
+  }
+}
+```
+
+### Track Share Link Copy
+
+Increment copy-share-link counter (no auth required).
+
+```http
+PATCH /api/document/:id/copy-share-link
+```
+
+<ParamField path="id" type="string" required>
+  Document ID
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/document/507f1f77bcf86cd799439013/copy-share-link', {
+  method: 'PATCH'
+});
+
+const { data } = await response.json();
+```
+
+#### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "507f1f77bcf86cd799439013",
+    "share": {
+      "copyShareLinkEvent": [
+        {
+          "year": 2024,
+          "month": 1,
+          "day": 15,
+          "count": 5
+        }
+      ]
+    }
+  }
+}
+```
+
+<Note>
+Share link events are aggregated by year/month/day. Same-day copies increment existing count.
+</Note>
+
+### Delete Document
+
+Delete a document and its associated files.
+
+```http
+DELETE /api/document/:id
+```
+
+**Authentication Required**
+
+<ParamField path="id" type="string" required>
+  Document ID
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/document/507f1f77bcf86cd799439013', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
+
+const { data } = await response.json();
+```
+
+#### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "507f1f77bcf86cd799439013",
+    "userId": "507f1f77bcf86cd799439010",
+    "title": "Getting Started Guide",
+    "tags": ["tutorial", "docs"]
+  }
+}
+```
+
+<Warning>
+Deleting a document automatically deletes associated files (fileId and mdFileId) to prevent orphaned files.
+</Warning>
+
+## Document Model
+
+The Document schema includes:
+
+**Fields**
+- `userId` - Reference to User (owner)
+- `title` - Document title
+- `tags` - Array of tag strings
+- `isPublic` - Public visibility (default: false)
+- `location` - Document path/location
+- `fileId` - Reference to attached File
+- `mdFileId` - Reference to markdown File
+- `share.copyShareLinkEvent` - Array of share tracking events
+
+**Populated Relations**
+- `userId` - User with username, role, profileImageId, briefDescription
+- `fileId` - File with _id, name, mimetype
+- `mdFileId` - File with _id, name, mimetype
+
+## Security Model
+
+Document access control:
+
+<Steps>
+  <Step title="Public Documents">
+    Documents with `isPublic: true` created by admin/moderator users are visible to everyone.
+  </Step>
+  <Step title="Private Documents">
+    Documents with `isPublic: false` are only visible to the owner (userId).
+  </Step>
+  <Step title="Authenticated Access">
+    Authenticated users see:
+    - ALL their own documents (public + private)
+    - Public documents from publishers (admin/moderator)
+  </Step>
+  <Step title="Unauthenticated Access">
+    Guest/unauthenticated users see:
+    - Only public documents from publishers (admin/moderator)
+  </Step>
+</Steps>
+
+## Tag Filtering
+
+Special tag behaviors:
+
+- **"public" tag** - Automatically sets `isPublic: true` and is filtered from tags array
+- **Tag queries** - Use `$all` operator (documents must have ALL requested tags)
+- **Panel filtering** - `idPanel` parameter prevents cross-panel results in search
+
+## Implementation Details
+
+**Router** (`src/api/document/document.router.js`)
+- Handles CRUD operations and search endpoints
+- Public endpoints for search and share tracking
+- Authentication required for mutations
+
+**Service** (`src/api/document/document.service.js`)
+- Advanced search with multi-term support
+- Role-based authorization (publishers vs users)
+- Automatic file cleanup on update/delete
+- Share link tracking with day-based aggregation
+
+**Model** (`src/api/document/document.model.js`)
+- Mongoose schema with timestamps
+- DocumentDto utilities for tag filtering and population
+- Share event tracking schema

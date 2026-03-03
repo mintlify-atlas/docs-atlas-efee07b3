@@ -1,0 +1,408 @@
+---
+title: File API
+description: File upload, retrieval, and management endpoints
+---
+
+The File API handles file uploads, retrieval, and deletion. Files are stored in MongoDB with metadata and support UTF-8 encoding for international filenames.
+
+## Authentication
+
+- **Upload** - Requires authentication, guest users cannot upload
+- **Retrieve** - Public for authorized files, restricted for private files
+- **Delete** - Admin only
+
+## Endpoints
+
+### Upload Files
+
+Upload one or more files.
+
+```http
+POST /api/file
+POST /api/file/:id
+```
+
+**Authentication Required** (Non-guest users only)
+
+<ParamField body="file" type="file" required>
+  File to upload (multipart/form-data)
+</ParamField>
+
+<ParamField body="[customField]" type="file" optional>
+  Additional files with custom field names
+</ParamField>
+
+#### Example Request - Single File
+
+```javascript
+const formData = new FormData();
+formData.append('file', fileInput.files[0]);
+
+const response = await fetch('/api/file', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`
+  },
+  body: formData
+});
+
+const { data } = await response.json();
+```
+
+#### Example Request - Multiple Files
+
+```javascript
+const formData = new FormData();
+formData.append('file', file1);
+formData.append('file', file2);
+formData.append('thumbnail', thumbnailFile);
+
+const response = await fetch('/api/file', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${token}`
+  },
+  body: formData
+});
+
+const { data } = await response.json();
+```
+
+#### Response
+
+<ResponseField name="status" type="string">
+  "success" or "error"
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Array of uploaded file metadata objects (no buffer data)
+</ResponseField>
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "_id": "507f1f77bcf86cd799439011",
+      "name": "document.pdf",
+      "mimetype": "application/pdf",
+      "size": 245632,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e",
+      "cid": "",
+      "createdAt": "2024-01-15T10:30:00.000Z",
+      "updatedAt": "2024-01-15T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+<Note>
+Filenames with special characters (ñ, é, ü) are automatically normalized to UTF-8 encoding.
+</Note>
+
+### Get File Metadata
+
+Retrieve file metadata by ID (without buffer data).
+
+```http
+GET /api/file/:id
+```
+
+<ParamField path="id" type="string" required>
+  File ID
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/file/507f1f77bcf86cd799439011');
+const { data } = await response.json();
+```
+
+#### Response
+
+<ResponseField name="status" type="string">
+  "success" or "error"
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Array with single file metadata object
+</ResponseField>
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "_id": "507f1f77bcf86cd799439011",
+      "name": "document.pdf",
+      "mimetype": "application/pdf",
+      "size": 245632,
+      "md5": "d41d8cd98f00b204e9800998ecf8427e",
+      "cid": "",
+      "createdAt": "2024-01-15T10:30:00.000Z",
+      "updatedAt": "2024-01-15T10:30:00.000Z"
+    }
+  ]
+}
+```
+
+### Get File Blob (Raw Data)
+
+Retrieve raw file data as Buffer.
+
+```http
+GET /api/file/blob/:id
+```
+
+<ParamField path="id" type="string" required>
+  File ID
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/file/blob/507f1f77bcf86cd799439011');
+const blob = await response.blob();
+
+// Use in image tag
+const imageUrl = URL.createObjectURL(blob);
+```
+
+#### Response Headers
+
+```http
+Content-Type: application/pdf
+Content-Length: 245632
+Content-Disposition: inline; filename="document.pdf"
+Access-Control-Allow-Origin: *
+Cross-Origin-Resource-Policy: cross-origin
+```
+
+#### Response Body
+
+Raw file Buffer (binary data)
+
+### Authorization for Files
+
+File access is controlled based on document associations:
+
+<Steps>
+  <Step title="Public Documents">
+    Files attached to documents with `isPublic: true` are accessible to everyone.
+  </Step>
+  <Step title="Private Documents">
+    Files attached to private documents require:
+    - Valid authentication token
+    - User must be the document owner
+  </Step>
+  <Step title="Orphaned Files">
+    Files not attached to any document are accessible to all (edge case).
+  </Step>
+</Steps>
+
+#### Example - Unauthorized Access
+
+```javascript
+// Trying to access a private file without auth
+const response = await fetch('/api/file/blob/507f1f77bcf86cd799439011');
+// Returns 400 error
+```
+
+```json
+{
+  "status": "error",
+  "message": "Unauthorized"
+}
+```
+
+### Get All Files (Admin)
+
+Retrieve metadata for all files.
+
+```http
+GET /api/file/all
+```
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/file/all');
+const { data } = await response.json();
+```
+
+#### Response
+
+```json
+{
+  "status": "success",
+  "data": [
+    {
+      "_id": "507f1f77bcf86cd799439011",
+      "name": "document.pdf",
+      "mimetype": "application/pdf",
+      "size": 245632
+    },
+    {
+      "_id": "507f1f77bcf86cd799439012",
+      "name": "image.png",
+      "mimetype": "image/png",
+      "size": 102400
+    }
+  ]
+}
+```
+
+### Delete File
+
+Delete a file by ID (admin only).
+
+```http
+DELETE /api/file/:id
+```
+
+**Admin Authentication Required**
+
+<ParamField path="id" type="string" required>
+  File ID to delete
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/file/507f1f77bcf86cd799439011', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': `Bearer ${adminToken}`
+  }
+});
+
+const { data } = await response.json();
+```
+
+#### Response
+
+<ResponseField name="status" type="string">
+  "success" or "error"
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Deleted file metadata
+</ResponseField>
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "507f1f77bcf86cd799439011",
+    "name": "document.pdf",
+    "mimetype": "application/pdf",
+    "size": 245632
+  }
+}
+```
+
+<Warning>
+Deleting files that are referenced by documents will break those document associations.
+</Warning>
+
+## File Model
+
+The File schema includes:
+
+**Fields**
+- `name` - Original filename (UTF-8 encoded)
+- `data` - File buffer (binary data)
+- `size` - File size in bytes
+- `encoding` - Character encoding (default: utf-8)
+- `mimetype` - MIME type (auto-detected)
+- `md5` - MD5 hash of file content
+- `cid` - Content identifier (optional)
+- `tempFilePath` - Temporary path during upload
+- `truncated` - Upload truncation flag
+
+## File Utilities
+
+### FileFactory
+
+Utility methods for file operations:
+
+**Methods** (`src/api/file/file.service.js:99-238`)
+
+```javascript
+// Extract files from request
+FileFactory.filesExtract(req)
+
+// Upload files to database
+await FileFactory.upload(req, File)
+
+// Create file object
+FileFactory.create(buffer, 'filename.pdf')
+
+// Get MIME type from path
+FileFactory.getMymeTypeFromPath('document.pdf')
+// Returns: 'application/pdf'
+```
+
+### FileCleanup
+
+Automatic file cleanup utilities:
+
+**Cleanup Replaced Files** (`src/api/file/file.service.js:261-284`)
+
+```javascript
+await FileCleanup.cleanupReplacedFiles({
+  oldDoc: document,
+  newData: { fileId: newFileId },
+  fileFields: ['fileId', 'mdFileId'],
+  File
+});
+```
+
+**Delete Document Files** (`src/api/file/file.service.js:300-321`)
+
+```javascript
+await FileCleanup.deleteDocumentFiles({
+  doc: document,
+  fileFields: ['fileId', 'mdFileId'],
+  File
+});
+```
+
+<Note>
+File cleanup utilities prevent orphaned files in the database when documents are updated or deleted.
+</Note>
+
+## Supported MIME Types
+
+Commonly detected MIME types:
+
+| Extension | MIME Type |
+|-----------|----------|
+| .png | image/png |
+| .jpg, .jpeg | image/jpeg |
+| .gif | image/gif |
+| .svg | image/svg+xml |
+| .webp | image/webp |
+| .pdf | application/pdf |
+| .md | text/markdown |
+| .txt | text/plain |
+| .json | application/json |
+| (other) | application/octet-stream |
+
+## Implementation Details
+
+**Router** (`src/api/file/file.router.js`)
+- Handles file upload, retrieval, and deletion
+- Admin guard for delete operations
+- CORS headers for blob endpoint
+
+**Service** (`src/api/file/file.service.js`)
+- UTF-8 filename normalization
+- Authorization checks based on document associations
+- Metadata-only responses for efficiency
+- Buffer streaming for blob endpoint
+
+**Model** (`src/api/file/file.model.js`)
+- MongoDB schema with Buffer storage
+- FileModelDto for response transformation

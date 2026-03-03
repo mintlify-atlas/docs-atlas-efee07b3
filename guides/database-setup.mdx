@@ -1,0 +1,455 @@
+---
+title: 'Database Configuration and Setup'
+description: 'Configure MongoDB, MariaDB, and other databases in Underpost'
+icon: 'database'
+---
+
+## Overview
+
+Underpost supports multiple database providers through a unified DataBaseProvider service. The framework currently supports MongoDB (via Mongoose) and MariaDB, with an extensible architecture for additional providers.
+
+## Database Configuration
+
+Configure your database connection in `conf.js`:
+
+```javascript conf.js
+server: {
+  'default.net': {
+    '/': {
+      client: 'default',
+      runtime: 'nodejs',
+      db: { 
+        provider: 'mongoose', 
+        host: 'mongodb://127.0.0.1:27017', 
+        name: 'default' 
+      },
+    }
+  }
+}
+```
+
+<ParamField path="provider" type="string">
+  Database provider to use: `mongoose` or `mariadb`
+</ParamField>
+
+<ParamField path="host" type="string">
+  Database connection string (e.g., `mongodb://localhost:27017`)
+</ParamField>
+
+<ParamField path="name" type="string">
+  Database name to connect to
+</ParamField>
+
+## MongoDB with Mongoose
+
+### Connection Setup
+
+The MongooseDB service handles MongoDB connections:
+
+```javascript MongooseDB.js
+import mongoose from 'mongoose';
+import { loggerFactory } from '../../server/logger.js';
+
+class MongooseDBService {
+  /**
+   * Establish MongoDB connection
+   */
+  async connect(host, name) {
+    const uri = `${host}/${name}`;
+    return await mongoose
+      .createConnection(uri, {
+        serverSelectionTimeoutMS: 5000,
+      })
+      .asPromise();
+  }
+
+  /**
+   * Dynamically load models for APIs
+   */
+  async loadModels(options = { apis: ['test'], conn: new mongoose.Connection() }) {
+    const { conn, apis } = options;
+    const models = {};
+    
+    for (const api of apis) {
+      const { ProviderSchema } = await import(`../../api/${api}/${api}.model.js`);
+      const keyModel = getCapVariableName(api);
+      models[keyModel] = conn.model(keyModel, ProviderSchema);
+    }
+    
+    return models;
+  }
+}
+
+const MongooseDB = new MongooseDBService();
+export { MongooseDB };
+```
+
+### Defining Models
+
+Create Mongoose schemas for your data:
+
+```javascript user.model.js
+import { Schema, model } from 'mongoose';
+import validator from 'validator';
+
+const UserSchema = new Schema(
+  {
+    email: {
+      type: String,
+      trim: true,
+      lowercase: true,
+      unique: true,
+      required: 'Email address is required',
+      validate: [validator.isEmail, 'Please fill a valid email address'],
+    },
+    emailConfirmed: { type: Boolean, default: false },
+    password: { type: String, trim: true, required: 'Password is required' },
+    username: {
+      type: String,
+      trim: true,
+      unique: true,
+      required: 'Username is required',
+      validate: [
+        {
+          validator: function (username) {
+            return /^[a-zA-Z0-9_-]+$/.test(username);
+          },
+          message: 'Username can only contain letters, numbers, hyphens, and underscores',
+        },
+        {
+          validator: function (username) {
+            return username && username.length >= 2 && username.length <= 20;
+          },
+          message: 'Username must be between 2 and 20 characters',
+        },
+      ],
+    },
+    role: { type: String, enum: ['guest', 'user', 'moderator', 'admin'], default: 'guest' },
+    activeSessions: {
+      type: [
+        {
+          tokenHash: { type: String, required: true },
+          ip: { type: String },
+          userAgent: { type: String },
+          expiresAt: { type: Date, required: true },
+          host: { type: String },
+          path: { type: String },
+        },
+      ],
+      default: [],
+    },
+    profileImageId: { type: Schema.Types.ObjectId, ref: 'File' },
+    publicProfile: { type: Boolean, default: false },
+    briefDescription: { type: String, default: 'Uploader' },
+  },
+  {
+    timestamps: true,
+  },
+);
+
+const UserModel = model('User', UserSchema);
+const ProviderSchema = UserSchema;
+
+export { UserSchema, UserModel, ProviderSchema };
+```
+
+<Steps>
+
+<Step title="Define Schema">
+  Create a Mongoose Schema with field types and validations
+</Step>
+
+<Step title="Add Validators">
+  Use built-in or custom validators for data integrity
+</Step>
+
+<Step title="Enable Timestamps">
+  Add `timestamps: true` to automatically track createdAt/updatedAt
+</Step>
+
+<Step title="Export Schema">
+  Export both the model and ProviderSchema for framework integration
+</Step>
+
+</Steps>
+
+### Data Transfer Objects (DTOs)
+
+Define data selection patterns:
+
+```javascript user.model.js
+const UserDto = {
+  select: {
+    get: () => {
+      return {
+        _id: 1,
+        username: 1,
+        email: 1,
+        role: 1,
+        emailConfirmed: 1,
+        profileImageId: 1,
+        publicProfile: 1,
+        briefDescription: 1,
+        createdAt: 1,
+        updatedAt: 1,
+      };
+    },
+  },
+  public: {
+    get: () => {
+      return {
+        _id: 1,
+        username: 1,
+        profileImageId: 1,
+        publicProfile: 1,
+        briefDescription: 1,
+        createdAt: 1,
+      };
+    },
+  },
+  auth: {
+    payload: (user, jwtid, ip, userAgent, host, path) => {
+      return {
+        _id: user._id.toString(),
+        role: user.role,
+        email: user.email,
+        ip,
+        userAgent,
+        host,
+        path,
+        jwtid,
+      };
+    },
+  },
+};
+
+export { UserDto };
+```
+
+<Note>
+  DTOs control which fields are returned to clients, protecting sensitive data like passwords.
+</Note>
+
+## MariaDB Support
+
+### Connection Setup
+
+Use the MariaDB service for SQL databases:
+
+```javascript MariaDB.js
+import { createPool } from 'mariadb';
+import { loggerFactory } from '../../server/logger.js';
+
+class MariaDBService {
+  /**
+   * Execute SQL query against MariaDB
+   */
+  async query(options) {
+    const { host, port, user, password, query } = options;
+    
+    const pool = createPool({
+      host: 'host' in options ? host : '127.0.0.1',
+      port: 'port' in options ? port : 3306,
+      user: 'user' in options ? user : 'root',
+      password: 'password' in options ? password : '',
+    });
+    
+    let conn, result;
+    try {
+      conn = await pool.getConnection();
+      result = await conn.query(query, { 
+        supportBigNumbers: true, 
+        bigNumberStrings: true 
+      });
+    } catch (error) {
+      logger.error(error, error.stack);
+    } finally {
+      if (conn) conn.release();
+      await pool.end();
+    }
+    
+    return result;
+  }
+}
+
+const MariaDB = new MariaDBService();
+export { MariaDB };
+```
+
+### Usage Example
+
+```javascript
+import { MariaDB } from '../../db/mariadb/MariaDB.js';
+
+const result = await MariaDB.query({
+  host: '127.0.0.1',
+  port: 3306,
+  user: 'root',
+  password: 'password',
+  query: 'SELECT * FROM users WHERE id = ?',
+});
+```
+
+## DataBaseProvider Service
+
+The DataBaseProvider centralizes database management:
+
+```javascript DataBaseProvider.js
+import { MongooseDB } from './mongo/MongooseDB.js';
+import { loggerFactory } from '../server/logger.js';
+
+class DataBaseProviderService {
+  #instance = {};
+  
+  get instance() {
+    return this.#instance;
+  }
+  
+  /**
+   * Load and initialize database provider
+   */
+  async load(options = { apis: [], host: '', path: '', db: {} }) {
+    const { apis, host, path, db } = options;
+    const key = `${host}${path}`;
+    
+    if (!this.#instance[key]) this.#instance[key] = {};
+    if (!db || this.#instance[key][db.provider]) 
+      return this.#instance[key][db.provider];
+    
+    switch (db.provider) {
+      case 'mongoose':
+        {
+          const conn = await MongooseDB.connect(db.host, db.name);
+          this.#instance[key][db.provider] = {
+            models: await MongooseDB.loadModels({ conn, apis }),
+            connection: conn,
+            close: async () => {
+              return await new Promise((resolve) => {
+                this.#instance[key][db.provider].connection.close().then(() => {
+                  return resolve();
+                });
+              });
+            },
+          };
+        }
+        break;
+      default:
+        break;
+    }
+    
+    return this.#instance[key][db.provider];
+  }
+}
+
+const DataBaseProvider = new DataBaseProviderService();
+export { DataBaseProvider };
+```
+
+## Accessing Models
+
+Access database models in your services:
+
+```javascript user.service.js
+import { DataBaseProvider } from '../../db/DataBaseProvider.js';
+
+const UserService = {
+  get: async (req, res, options) => {
+    const { host, path } = options;
+    
+    // Access User model
+    const User = DataBaseProvider.instance[`${host}${path}`].mongoose.models.User;
+    
+    // Query database
+    const user = await User.findOne({ _id: req.params.id })
+      .select(UserDto.select.get())
+      .lean();
+    
+    return user;
+  },
+};
+```
+
+<CodeGroup>
+
+```javascript Find One
+const user = await User.findOne({ email: 'john@example.com' });
+```
+
+```javascript Find Many
+const users = await User.find({ role: 'user' }).limit(10);
+```
+
+```javascript Create
+const newUser = await new User({ email, password, username }).save();
+```
+
+```javascript Update
+const updated = await User.findByIdAndUpdate(id, { $set: data }, { new: true });
+```
+
+```javascript Delete
+await User.findByIdAndDelete(id);
+```
+
+</CodeGroup>
+
+## Cache Configuration
+
+Configure Valkey/Redis for caching:
+
+```javascript conf.js
+server: {
+  'default.net': {
+    '/': {
+      valkey: {
+        port: 6379,
+        host: '127.0.0.1',
+      },
+    }
+  }
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+
+<Card title="Connection Pooling" icon="server">
+  Use connection pooling for better performance and resource management
+</Card>
+
+<Card title="Data Validation" icon="shield-check">
+  Implement schema-level validation to ensure data integrity
+</Card>
+
+<Card title="Indexes" icon="bolt">
+  Create indexes on frequently queried fields for faster lookups
+</Card>
+
+<Card title="Error Handling" icon="triangle-exclamation">
+  Always handle database errors gracefully with try-catch blocks
+</Card>
+
+</CardGroup>
+
+## Environment Variables
+
+Store sensitive database credentials in environment variables:
+
+```bash .env
+MONGODB_URI=mongodb://127.0.0.1:27017
+MONGODB_NAME=production_db
+MARIADB_HOST=127.0.0.1
+MARIADB_USER=app_user
+MARIADB_PASSWORD=secure_password
+```
+
+<Warning>
+  Never commit database credentials to version control. Always use environment variables.
+</Warning>
+
+## Next Steps
+
+<Card title="Authentication" icon="lock" href="/guides/authentication">
+  Implement secure authentication with database-backed sessions
+</Card>

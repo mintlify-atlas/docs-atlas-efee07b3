@@ -1,0 +1,353 @@
+---
+title: Bare Metal Deployment
+description: Deploy Underpost on bare metal servers with automated provisioning
+---
+
+# Bare Metal Deployment
+
+Underpost includes comprehensive bare metal provisioning capabilities using PXE boot, UEFI/GRUB, and automated workflows for physical server deployment.
+
+## Overview
+
+The bare metal deployment system supports:
+
+- **Multiple architectures**: ARM64 (Raspberry Pi 4) and AMD64 (x86_64)
+- **Multiple OS types**: Ubuntu 24.04, Rocky Linux 9
+- **Boot methods**: ISO-RAM, ISO-NFS, chroot-debootstrap, chroot-container
+- **Automation**: MAAS integration, Packer workflows
+
+## CLI Command
+
+Use the Underpost CLI for bare metal operations:
+
+```bash
+underpost baremetal --dev --commission --ls --create-machine
+```
+
+From `package.json`:
+
+```json
+{
+  "scripts": {
+    "baremetal": "node bin baremetal --dev --commission --ls --create-machine"
+  }
+}
+```
+
+## Commissioning Workflows
+
+The `baremetal/commission-workflows.json` defines hardware-specific provisioning configurations.
+
+### Raspberry Pi 4 (ARM64)
+
+#### ISO-RAM Boot
+
+```json
+{
+  "rpi4mbarm64-iso-ram": {
+    "type": "iso-ram",
+    "osIdLike": "debian ubuntu",
+    "architecture": "arm64",
+    "isoUrl": "https://cdimage.ubuntu.com/releases/24.04/release/ubuntu-24.04.3-live-server-arm64.iso",
+    "tftpPrefix": "rpi4mb",
+    "bootstrapHttpServerPort": 8888,
+    "menuentryStr": "UNDERPOST.NET UEFI/GRUB/MAAS RPi4 ISO-RAM Ubuntu 24.04 (ARM64)",
+    "networkInterfaceName": "enabcm6e4ei0",
+    "chronyc": {
+      "timezone": "America/Santiago",
+      "chronyConfPath": "/etc/chrony/chrony.conf"
+    },
+    "firmwares": [
+      {
+        "url": "https://github.com/pftf/RPi4/releases/download/v1.41/RPi4_UEFI_Firmware_v1.41.zip",
+        "gateway": "192.168.1.1",
+        "subnet": "255.255.255.0"
+      }
+    ],
+    "maas": {
+      "commissioning": {
+        "architecture": "arm64/hwe-24.04-edge",
+        "name": "ubuntu/noble"
+      }
+    }
+  }
+}
+```
+
+#### Chroot Container (Rocky Linux 9)
+
+```json
+{
+  "rpi4mbarm64-chroot-rocky9": {
+    "type": "chroot-container",
+    "osIdLike": "rhel centos fedora",
+    "architecture": "arm64",
+    "tftpPrefix": "rpi4mb",
+    "menuentryStr": "UNDERPOST.NET Container CHROOT Rocky Linux 9 (ARM64)",
+    "networkInterfaceName": "eth0",
+    "container": {
+      "image": "quay.io/rockylinux/rockylinux:9",
+      "architecture": "arm64",
+      "packages": [
+        "kernel",
+        "chrony",
+        "kbd",
+        "glibc-langpack-en",
+        "tzdata"
+      ]
+    }
+  }
+}
+```
+
+### AMD64 Servers
+
+#### ISO-NFS Boot
+
+```json
+{
+  "hp-envy-iso-nfs": {
+    "type": "iso-nfs",
+    "osIdLike": "debian ubuntu",
+    "architecture": "amd64",
+    "isoUrl": "https://releases.ubuntu.com/releases/24.04/ubuntu-24.04.3-live-server-amd64.iso",
+    "tftpPrefix": "envy",
+    "bootstrapHttpServerPort": 8888,
+    "menuentryStr": "UNDERPOST.NET UEFI/ISO-IPXE/MAAS hp-envy ISO-NFS Ubuntu 24.04 (AMD64)",
+    "networkInterfaceName": "eth0",
+    "maas": {
+      "commissioning": {
+        "architecture": "amd64/hwe-24.04-edge",
+        "name": "ubuntu/noble"
+      }
+    }
+  }
+}
+```
+
+#### Rocky Linux 9 ISO-RAM
+
+```json
+{
+  "hp-envy-iso-ram-rocky9": {
+    "type": "iso-ram",
+    "osIdLike": "rhel centos fedora",
+    "architecture": "amd64",
+    "isoUrl": "https://download.rockylinux.org/pub/rocky/9/isos/x86_64/Rocky-9-latest-x86_64-boot.iso",
+    "tftpPrefix": "envy-rocky9",
+    "menuentryStr": "UNDERPOST.NET UEFI/ISO-IPXE/KICKSTART-ANACONDA Rocky Linux 9 (AMD64)",
+    "container": {
+      "image": "quay.io/rockylinux/rockylinux:9",
+      "architecture": "amd64",
+      "packages": [
+        "kernel",
+        "kernel-core",
+        "kernel-modules",
+        "linux-firmware",
+        "dracut",
+        "dracut-network",
+        "nfs-utils",
+        "openssh-server"
+      ]
+    }
+  }
+}
+```
+
+## Packer Workflows
+
+Create custom OS images with Packer (`baremetal/packer-workflows.json`):
+
+### Rocky Linux 9 AMD64
+
+```json
+{
+  "Rocky9Amd64": {
+    "dir": "packer/images/Rocky9Amd64",
+    "maas": {
+      "name": "custom/rocky9",
+      "title": "Rocky 9 Custom",
+      "architecture": "amd64/generic",
+      "base_image": "rhel/9",
+      "filetype": "tgz",
+      "content": "rocky9.tar.gz"
+    }
+  }
+}
+```
+
+### Rocky Linux 9 ARM64
+
+```json
+{
+  "Rocky9Arm64": {
+    "dir": "packer/images/Rocky9Arm64",
+    "maas": {
+      "name": "custom/rocky9-arm64",
+      "title": "Rocky 9 Arm64 Custom",
+      "architecture": "arm64/generic",
+      "base_image": "rhel/9",
+      "filetype": "tgz",
+      "content": "rocky9.tar.gz"
+    }
+  }
+}
+```
+
+## Boot Methods Explained
+
+### ISO-RAM
+
+Loads the entire ISO image into RAM:
+
+- **Pros**: Fast after initial load, no network dependency after boot
+- **Cons**: Requires sufficient RAM, slower initial boot
+- **Use case**: Production environments, stable deployments
+
+### ISO-NFS
+
+Mounts ISO over network via NFS:
+
+- **Pros**: Lower memory footprint, faster initial boot
+- **Cons**: Requires persistent network connection
+- **Use case**: Development, testing, network boot scenarios
+
+### Chroot-Debootstrap
+
+Builds a Debian/Ubuntu system using debootstrap:
+
+- **Pros**: Customizable, minimal footprint
+- **Cons**: Debian/Ubuntu only
+- **Use case**: Custom Ubuntu deployments
+
+### Chroot-Container
+
+Builds system from container images:
+
+- **Pros**: Reproducible, version-controlled
+- **Cons**: Requires container runtime
+- **Use case**: Consistent environments, CI/CD
+
+## Network Configuration
+
+Configure network settings for PXE boot:
+
+<Steps>
+  <Step title="DHCP Server Setup">
+    Configure DHCP to provide IP addresses and PXE boot information.
+  </Step>
+
+  <Step title="TFTP Server">
+    Set up TFTP server to serve boot files and UEFI firmware.
+  </Step>
+
+  <Step title="HTTP Bootstrap Server">
+    Run HTTP server on port 8888 for ISO downloads and configuration files.
+  </Step>
+
+  <Step title="NFS Server (Optional)">
+    Set up NFS exports for ISO-NFS boot method.
+  </Step>
+</Steps>
+
+## Provisioning Workflow
+
+<Steps>
+  <Step title="Prepare boot infrastructure">
+    Set up DHCP, TFTP, HTTP, and optionally NFS servers.
+  </Step>
+
+  <Step title="Select workflow">
+    Choose appropriate workflow from `commission-workflows.json` based on hardware and OS requirements.
+  </Step>
+
+  <Step title="Run commission command">
+    ```bash
+    npm run baremetal
+    ```
+  </Step>
+
+  <Step title="Boot target machine">
+    Configure target machine to PXE boot and power on.
+  </Step>
+
+  <Step title="Monitor installation">
+    Watch the automated installation process complete.
+  </Step>
+</Steps>
+
+## MAAS Integration
+
+Integrate with Canonical MAAS for large-scale deployments:
+
+```bash
+# Configure MAAS with custom images
+maas admin boot-resources create \
+  name='custom/rocky9' \
+  title='Rocky 9 Custom' \
+  architecture='amd64/generic' \
+  base_image='rhel/9' \
+  filetype='tgz' \
+  content@=rocky9.tar.gz
+```
+
+## Supported Hardware
+
+Tested configurations:
+
+- **Raspberry Pi 4** (ARM64)
+  - 4GB/8GB RAM models
+  - UEFI firmware v1.41
+  - Network interface: enabcm6e4ei0
+
+- **HP Envy** (AMD64)
+  - Standard UEFI boot
+  - Network interface: eth0
+
+## Customization
+
+Customize workflows by:
+
+1. **Timezone**: Modify `chronyc.timezone`
+2. **Network**: Update `networkInterfaceName`, `gateway`, `subnet`
+3. **Keyboard**: Change `keyboard.layout`
+4. **Packages**: Add/remove from `container.packages`
+
+## Troubleshooting
+
+### Boot Issues
+
+```bash
+# Check DHCP leases
+sudo journalctl -u isc-dhcp-server -f
+
+# Verify TFTP access
+tftp localhost -c get pxelinux.0
+
+# Test HTTP bootstrap server
+curl http://localhost:8888/
+```
+
+### Network Configuration
+
+```bash
+# Verify network interface
+ip addr show
+
+# Check routes
+ip route
+
+# Test connectivity
+ping -c 4 192.168.1.1
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Docker Deployment" icon="docker" href="/deployment/docker">
+    Containerize your applications
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/cli/commands/monitor">
+    Monitor your infrastructure
+  </Card>
+</CardGroup>

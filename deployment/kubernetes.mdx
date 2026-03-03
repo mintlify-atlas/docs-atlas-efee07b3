@@ -1,0 +1,391 @@
+---
+title: Kubernetes Deployment
+description: Deploy and orchestrate Underpost applications on Kubernetes
+---
+
+# Kubernetes Deployment
+
+Underpost includes production-ready Kubernetes manifests for deploying microservices with support for blue-green deployments, StatefulSets, and service mesh integration.
+
+## Prerequisites
+
+- Kubernetes cluster (v1.20+)
+- kubectl configured
+- Docker image built and pushed to registry
+- Optional: KIND for local development
+
+## Local Development with KIND
+
+The project includes a KIND configuration for local Kubernetes testing:
+
+```yaml
+# manifests/kind-config.yaml
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+nodes:
+  - role: control-plane
+  - role: worker
+    extraPortMappings:
+      - containerPort: 80
+        hostPort: 80
+        listenAddress: '0.0.0.0'
+      - containerPort: 443
+        hostPort: 443
+        listenAddress: '0.0.0.0'
+```
+
+<Steps>
+  <Step title="Create KIND cluster">
+    ```bash
+    kind create cluster --config manifests/kind-config.yaml --name underpost
+    ```
+  </Step>
+
+  <Step title="Load Docker image">
+    ```bash
+    kind load docker-image rockylinux9-underpost:v3.0.2 --name underpost
+    ```
+  </Step>
+
+  <Step title="Verify cluster">
+    ```bash
+    kubectl cluster-info --context kind-underpost
+    ```
+  </Step>
+</Steps>
+
+## Application Deployment
+
+### Blue-Green Deployment
+
+Underpost uses blue-green deployment strategy for zero-downtime updates:
+
+```yaml
+# manifests/deployment/dd-default-development/deployment.yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: dd-default-development-blue
+  labels:
+    app: dd-default-development-blue
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: dd-default-development-blue
+  template:
+    metadata:
+      labels:
+        app: dd-default-development-blue
+    spec:
+      containers:
+        - name: dd-default-development-blue
+          image: localhost/rockylinux9-underpost:v3.0.2
+          command:
+            - /bin/sh
+            - -c
+            - >
+              npm install -g npm@11.2.0 &&
+              npm install -g underpost &&
+              cd $(underpost root)/underpost &&
+              node bin new --default-conf --conf-workflow-id template &&
+              mkdir -p /home/dd &&
+              cd /home/dd &&
+              underpost new engine
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: dd-default-development-blue-service
+spec:
+  selector:
+    app: dd-default-development-blue
+  ports:
+    - name: 'tcp-4001'
+      protocol: TCP
+      port: 4001
+      targetPort: 4001
+    - name: 'udp-4001'
+      protocol: UDP
+      port: 4001
+      targetPort: 4001
+    - name: 'tcp-4002'
+      protocol: TCP
+      port: 4002
+      targetPort: 4002
+    - name: 'tcp-4003'
+      protocol: TCP
+      port: 4003
+      targetPort: 4003
+  type: LoadBalancer
+```
+
+### Deploy Application
+
+```bash
+kubectl apply -f manifests/deployment/dd-default-development/deployment.yaml
+```
+
+## HTTPProxy Configuration
+
+Underpost uses Contour HTTPProxy for ingress routing with WebSocket support:
+
+```yaml
+# manifests/deployment/dd-default-development/proxy.yaml
+apiVersion: projectcontour.io/v1
+kind: HTTPProxy
+metadata:
+  name: default.net
+spec:
+  virtualhost:
+    fqdn: default.net
+  routes:
+    - conditions:
+        - prefix: /
+      enableWebsockets: true
+      services:
+        - name: dd-default-development-blue-service
+          port: 4001
+          weight: 100
+
+    - conditions:
+        - prefix: /peer
+      enableWebsockets: true
+      services:
+        - name: dd-default-development-blue-service
+          port: 4002
+          weight: 100
+```
+
+### Apply HTTPProxy:
+
+```bash
+kubectl apply -f manifests/deployment/dd-default-development/proxy.yaml
+```
+
+## StatefulSet Deployments
+
+### MongoDB StatefulSet
+
+For stateful services like databases:
+
+```yaml
+# manifests/mongodb/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: mongodb
+spec:
+  serviceName: 'mongodb-service'
+  replicas: 2
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+        - name: mongodb
+          image: docker.io/library/mongo:latest
+          command:
+            - mongod
+            - '--replSet'
+            - 'rs0'
+            - '--logpath'
+            - '/var/log/mongodb/mongod.log'
+            - '--bind_ip_all'
+          ports:
+            - containerPort: 27017
+          volumeMounts:
+            - name: mongodb-storage
+              mountPath: /data/db
+          env:
+            - name: MONGO_INITDB_ROOT_USERNAME
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: username
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: mongodb-secret
+                  key: password
+          resources:
+            requests:
+              cpu: '100m'
+              memory: '256Mi'
+            limits:
+              cpu: '500m'
+              memory: '512Mi'
+  volumeClaimTemplates:
+    - metadata:
+        name: mongodb-storage
+      spec:
+        accessModes: ['ReadWriteOnce']
+        storageClassName: mongodb-storage-class
+        resources:
+          requests:
+            storage: 5Gi
+```
+
+### Valkey StatefulSet
+
+```yaml
+# manifests/valkey/statefulset.yaml
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: valkey-service
+spec:
+  serviceName: valkey-service
+  replicas: 1
+  selector:
+    matchLabels:
+      app: valkey-service
+  template:
+    metadata:
+      labels:
+        app: valkey-service
+    spec:
+      automountServiceAccountToken: false
+      containers:
+        - name: valkey-service
+          image: docker.io/valkey/valkey:latest
+          imagePullPolicy: IfNotPresent
+          command: ['valkey-server']
+          args: ['--port', '6379']
+          ports:
+            - containerPort: 6379
+          startupProbe:
+            tcpSocket:
+              port: 6379
+            periodSeconds: 5
+            timeoutSeconds: 5
+            failureThreshold: 30
+          livenessProbe:
+            tcpSocket:
+              port: 6379
+            initialDelaySeconds: 10
+            periodSeconds: 30
+            timeoutSeconds: 5
+            failureThreshold: 2
+```
+
+## Kustomize Support
+
+Use Kustomize for environment-specific configurations:
+
+<CodeGroup>
+
+```bash Deploy with Kustomize
+kubectl apply -k manifests/mongodb/
+kubectl apply -k manifests/valkey/
+```
+
+```bash Deploy all services
+kubectl apply -k manifests/deployment/dd-default-development/
+```
+
+</CodeGroup>
+
+## TLS with Let's Encrypt
+
+Configure cert-manager with Let's Encrypt:
+
+```yaml
+# manifests/letsencrypt-prod.yaml
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    email: development@underpost.net
+    privateKeySecretRef:
+      name: letsencrypt-prod
+    server: https://acme-v02.api.letsencrypt.org/directory
+    solvers:
+      - http01:
+          ingress:
+            class: contour
+```
+
+<Steps>
+  <Step title="Install cert-manager">
+    ```bash
+    kubectl apply -f https://github.com/cert-manager/cert-manager/releases/download/v1.13.0/cert-manager.yaml
+    ```
+  </Step>
+
+  <Step title="Apply ClusterIssuer">
+    ```bash
+    kubectl apply -f manifests/letsencrypt-prod.yaml
+    ```
+  </Step>
+
+  <Step title="Update HTTPProxy with TLS">
+    Add TLS configuration to your HTTPProxy manifest.
+  </Step>
+</Steps>
+
+## Monitoring with Prometheus
+
+Deploy Prometheus for metrics collection:
+
+```bash
+kubectl apply -f manifests/prometheus/deployment.yaml
+```
+
+## Useful Commands
+
+<CodeGroup>
+
+```bash Check Deployments
+kubectl get deployments
+kubectl get pods
+kubectl get services
+```
+
+```bash View Logs
+kubectl logs -f deployment/dd-default-development-blue
+```
+
+```bash Scale Deployment
+kubectl scale deployment dd-default-development-blue --replicas=3
+```
+
+```bash Port Forward
+kubectl port-forward service/dd-default-development-blue-service 4001:4001
+```
+
+```bash Execute Commands
+kubectl exec -it pod/dd-default-development-blue-xxxxx -- bash
+```
+
+</CodeGroup>
+
+## Available Manifests
+
+The project includes manifests for:
+
+- **Databases**: MongoDB, MariaDB, MySQL, PostgreSQL
+- **Cache**: Valkey (Redis alternative)
+- **Storage**: IPFS
+- **Monitoring**: Prometheus, Grafana
+- **Admin Tools**: Adminer, phpMyAdmin, mongo-express
+- **Processing**: Kafka, Spark, TensorFlow
+
+Explore all manifests in `source/manifests/`.
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Bare Metal Deployment" icon="server" href="/deployment/baremetal">
+    Deploy on physical infrastructure
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="/cli/commands/monitor">
+    Set up monitoring and metrics
+  </Card>
+</CardGroup>

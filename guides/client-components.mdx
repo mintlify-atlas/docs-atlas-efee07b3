@@ -1,0 +1,420 @@
+---
+title: 'Developing Client Components'
+description: 'Build interactive client-side components with the Underpost framework'
+icon: 'layer-group'
+---
+
+## Overview
+
+Underpost provides a component-based architecture for building interactive user interfaces. Components are vanilla JavaScript modules that handle rendering, events, and state management.
+
+## Component Structure
+
+Client components follow a consistent pattern:
+
+```javascript Modal.js
+import { getId, newInstance } from './CommonJs.js';
+import { append, s, htmls, sa } from './VanillaJs.js';
+import { BtnIcon } from './BtnIcon.js';
+import { Responsive } from './Responsive.js';
+
+const Modal = {
+  Data: {},
+  
+  Render: async function (options = {
+    id: '',
+    title: '',
+    html: '',
+    mode: '',
+  }) {
+    const idModal = options.id ? options.id : getId(this.Data, 'modal-');
+    
+    this.Data[idModal] = {
+      options,
+      onCloseListener: {},
+      onMenuListener: {},
+    };
+    
+    // Component rendering logic
+    append('body', html`
+      <div class="modal ${idModal}">
+        <div class="modal-title">${options.title}</div>
+        <div class="modal-content">${await options.html()}</div>
+      </div>
+    `);
+    
+    return idModal;
+  },
+};
+
+export { Modal };
+```
+
+<Steps>
+
+<Step title="Define Component Object">
+  Create an object with a Data property for state management
+</Step>
+
+<Step title="Implement Render Method">
+  Add an async Render function that generates HTML
+</Step>
+
+<Step title="Manage State">
+  Store component state and listeners in the Data object
+</Step>
+
+<Step title="Return Component ID">
+  Return a unique identifier for component instance tracking
+</Step>
+
+</Steps>
+
+## Router Component
+
+Handle client-side routing with the Router component:
+
+```javascript Router.js
+import { titleFormatted } from './CommonJs.js';
+import { htmls, s } from './VanillaJs.js';
+import { Modal } from './Modal.js';
+
+const RouterEvents = {};
+
+/**
+ * Get the proxy path for routing within subdirectories
+ */
+const getProxyPath = () => {
+  let path = location.pathname.split('/')[1] 
+    ? `/${location.pathname.split('/')[1]}/` 
+    : '/';
+  if (window.Routes && path !== '/' && path.slice(0, -1) in window.Routes()) 
+    path = '/';
+  return path;
+};
+
+/**
+ * Set browser path using History API
+ */
+const setPath = (
+  path = '/',
+  options = { removeSearch: false, removeHash: false, replace: false },
+  stateStorage = {},
+  title = '',
+) => {
+  if (!path) path = '/';
+  
+  let [inputPath, inputSearchHash] = `${path}`.split('?');
+  let [inputSearch, inputHash] = inputSearchHash ? inputSearchHash.split('#') : [];
+  
+  let sanitizedPath = (inputPath[0] !== '/' ? `/${inputPath}` : inputPath)
+    .trim()
+    .replaceAll('//', '/')
+    .replaceAll(`\\`, '/');
+  
+  const newFullPath = `${sanitizedPath}${
+    inputSearch && !options.removeSearch ? `?${inputSearch}` : ''
+  }${inputHash && !options.removeHash ? `#${inputHash}` : ''}`;
+  
+  if (options.replace) {
+    return history.replaceState(stateStorage, title, newFullPath);
+  } else {
+    return history.pushState(stateStorage, title, newFullPath);
+  }
+};
+
+/**
+ * Set document title and update active menu button
+ */
+const setDocTitle = (route) => {
+  const title = titleFormatted(route);
+  htmls('title', `${title} | ${Worker.title}`);
+  
+  if (s(`.main-btn-${route}`)) {
+    if (s(`.main-btn-menu-active`)) 
+      s(`.main-btn-menu-active`).classList.remove(`main-btn-menu-active`);
+    s(`.main-btn-${route}`).classList.add(`main-btn-menu-active`);
+  }
+};
+
+/**
+ * Main router function
+ */
+const Router = function (options = { Routes: () => {}, e: new PopStateEvent() }) {
+  const { e, Routes } = options;
+  const proxyPath = getProxyPath();
+  let path = window.location.pathname;
+  
+  for (let route of Object.keys(Routes())) {
+    route = route.slice(1);
+    let pushPath = `${proxyPath}${route}`;
+    
+    if (path[path.length - 1] !== '/') path = `${path}/`;
+    if (pushPath[pushPath.length - 1] !== '/') pushPath = `${pushPath}/`;
+    
+    const routerEvent = { path, pushPath, route };
+    
+    if (path === pushPath) {
+      for (const event of Object.keys(RouterEvents)) 
+        RouterEvents[event](routerEvent);
+      setDocTitle(route);
+      return Routes()[`/${route}`].render();
+    }
+  }
+};
+
+/**
+ * Initialize router and setup popstate listener
+ */
+const LoadRouter = function (RouterInstance) {
+  Router(RouterInstance);
+  window.onpopstate = (e) => {
+    Router({ ...RouterInstance, e });
+  };
+};
+
+export { 
+  Router, 
+  LoadRouter, 
+  setPath, 
+  setDocTitle, 
+  getProxyPath,
+  RouterEvents 
+};
+```
+
+## Menu Component
+
+Create interactive navigation menus:
+
+```javascript MenuDefault.js
+import { BtnIcon } from '../core/BtnIcon.js';
+import { Modal, renderMenuLabel, renderViewTitle } from '../core/Modal.js';
+import { Translate } from '../core/Translate.js';
+import { EventsUI } from '../core/EventsUI.js';
+import { getProxyPath } from '../core/Router.js';
+
+const MenuDefault = {
+  Data: {},
+  
+  Render: async function (options = {}) {
+    const { barConfig } = await Themes[Css.currentTheme]();
+    
+    await Modal.Render({
+      id: 'modal-menu',
+      html: html`
+        <div class="fl menu-btn-container">
+          ${await BtnIcon.Render({
+            class: 'in wfa main-btn-menu main-btn-home',
+            label: renderMenuLabel({
+              icon: html`<i class="fas fa-home"></i>`,
+              text: html`<span>${Translate.Render('home')}</span>`,
+            }),
+            tabHref: `${getProxyPath()}`,
+          })}
+          ${await BtnIcon.Render({
+            class: 'in wfa main-btn-menu main-btn-settings',
+            label: renderMenuLabel({
+              icon: html`<i class="fas fa-sliders-h"></i>`,
+              text: html`<span>${Translate.Render('settings')}</span>`,
+            }),
+            tabHref: `${getProxyPath()}settings`,
+          })}
+        </div>
+      `,
+      mode: 'slide-menu',
+    });
+    
+    // Add click handlers
+    EventsUI.onClick(`.main-btn-home`, async () => {
+      await Modal.Render({
+        id: 'modal-home',
+        route: 'home',
+        title: renderViewTitle({
+          icon: html`<i class="fas fa-home"></i>`,
+          text: Translate.Render('home'),
+        }),
+        html: async () => html`<h1>Welcome Home!</h1>`,
+        mode: 'view',
+      });
+    });
+  },
+};
+
+export { MenuDefault };
+```
+
+## VanillaJS Utilities
+
+Underpost provides utility functions for DOM manipulation:
+
+```javascript VanillaJs.js
+// Select single element
+const s = (selector) => document.querySelector(selector);
+
+// Select all elements
+const sa = (selector) => document.querySelectorAll(selector);
+
+// Set HTML content
+const htmls = (selector, content) => {
+  const el = typeof selector === 'string' ? s(selector) : selector;
+  if (el) el.innerHTML = content;
+};
+
+// Append HTML
+const append = (selector, content) => {
+  const el = typeof selector === 'string' ? s(selector) : selector;
+  if (el) el.insertAdjacentHTML('beforeend', content);
+};
+
+// Prepend HTML
+const prepend = (selector, content) => {
+  const el = typeof selector === 'string' ? s(selector) : selector;
+  if (el) el.insertAdjacentHTML('afterbegin', content);
+};
+```
+
+<Note>
+  These utilities provide a lightweight alternative to jQuery for DOM operations.
+</Note>
+
+## Event Handling
+
+Manage click events and interactions:
+
+```javascript EventsUI.js
+const EventsUI = {
+  // Simple click handler
+  onClick: (selector, callback) => {
+    const el = s(selector);
+    if (el) el.onclick = callback;
+  },
+  
+  // Hover and focus controller
+  HoverFocusController: ({ inputSelector, panelSelector, onDismiss }) => {
+    let hovering = false;
+    
+    const bind = () => {
+      s(inputSelector).addEventListener('mouseenter', () => hovering = true);
+      s(inputSelector).addEventListener('mouseleave', () => hovering = false);
+      s(panelSelector).addEventListener('mouseenter', () => hovering = true);
+      s(panelSelector).addEventListener('mouseleave', () => {
+        hovering = false;
+        checkDismiss();
+      });
+    };
+    
+    const shouldStay = () => hovering;
+    const checkDismiss = () => {
+      if (!shouldStay()) onDismiss();
+    };
+    
+    return { bind, shouldStay, checkDismiss };
+  },
+};
+```
+
+## Responsive Design
+
+Handle responsive layouts with event listeners:
+
+```javascript Responsive.js
+const Responsive = {
+  Event: {},
+  
+  // Listen for window resize
+  Init: () => {
+    window.addEventListener('resize', () => {
+      for (const key in Responsive.Event) {
+        Responsive.Event[key]();
+      }
+    });
+  },
+};
+
+// Register responsive behavior
+Responsive.Event[`view-${idModal}`] = () => {
+  if (!Modal.Data[idModal]) return delete Responsive.Event[`view-${idModal}`];
+  
+  s(`.${idModal}`).style.height = `${windowGetH() - 100}px`;
+  s(`.${idModal}`).style.width = `${windowGetW()}px`;
+};
+```
+
+## Translation Component
+
+Implement multi-language support:
+
+```javascript Translate.js
+const Translate = {
+  Data: {
+    'en': {
+      'home': 'Home',
+      'settings': 'Settings',
+      'log-in': 'Log In',
+    },
+    'es': {
+      'home': 'Inicio',
+      'settings': 'Configuración',
+      'log-in': 'Iniciar Sesión',
+    },
+  },
+  
+  currentLang: 'en',
+  
+  Render: (key) => {
+    return Translate.Data[Translate.currentLang][key] || key;
+  },
+};
+```
+
+## Component Registration
+
+Register components in your configuration:
+
+```javascript conf.js
+components: {
+  core: [
+    'CommonJs',
+    'VanillaJs',
+    'Router',
+    'Modal',
+    'BtnIcon',
+    'Translate',
+    'EventsUI',
+    'Responsive',
+  ],
+  default: [
+    'MenuDefault',
+    'RoutesDefault',
+  ],
+}
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+
+<Card title="State Management" icon="database">
+  Store component state in the Data object for easy access and cleanup
+</Card>
+
+<Card title="Event Cleanup" icon="broom">
+  Remove event listeners when components are destroyed to prevent memory leaks
+</Card>
+
+<Card title="Async Rendering" icon="clock">
+  Use async/await for component rendering to handle asynchronous operations
+</Card>
+
+<Card title="Unique IDs" icon="fingerprint">
+  Generate unique IDs for component instances using getId utility
+</Card>
+
+</CardGroup>
+
+## Next Steps
+
+<Card title="API Development" icon="code" href="/guides/api-development">
+  Learn how to build REST APIs to power your components
+</Card>

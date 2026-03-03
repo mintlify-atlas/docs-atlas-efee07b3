@@ -1,0 +1,115 @@
+---
+title: Server API Overview
+description: Overview of the Underpost server API architecture and endpoints
+---
+
+The Underpost server API provides a RESTful interface for managing users, files, documents, and core resources. All endpoints follow a consistent response structure and authentication pattern.
+
+## Base URL
+
+All API endpoints are relative to your server's base URL:
+
+```
+http://localhost:3000/api
+```
+
+## API Structure
+
+The API is organized into four main modules:
+
+- **Core API** - Base CRUD operations for core resources
+- **User API** - User management, authentication, and profiles
+- **File API** - File upload, retrieval, and management
+- **Document API** - Document creation, search, and sharing
+
+## Response Format
+
+All API responses follow a consistent JSON structure:
+
+### Success Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    // Response data
+  }
+}
+```
+
+### Error Response
+
+```json
+{
+  "status": "error",
+  "message": "Error description"
+}
+```
+
+## Authentication
+
+Most endpoints require authentication using JWT tokens. Include the token in the Authorization header:
+
+```bash
+Authorization: Bearer <your-jwt-token>
+```
+
+### Getting a Token
+
+Obtain a JWT token by logging in through the User API:
+
+```javascript
+const response = await fetch('/api/user/', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: 'user@example.com',
+    password: 'your-password'
+  })
+});
+
+const { token } = await response.json();
+```
+
+## Authorization Levels
+
+The API uses role-based access control:
+
+- **Guest** - Limited access, read-only public content
+- **User** - Authenticated user with full access to own resources
+- **Admin** - Full system access including user management
+- **Moderator** - Can publish public content
+
+## Rate Limiting
+
+<Note>
+Rate limiting policies depend on your server configuration. Contact your administrator for specific limits.
+</Note>
+
+## Error Codes
+
+| Status Code | Description |
+|-------------|-------------|
+| 200 | Success |
+| 400 | Bad Request - Invalid input data |
+| 401 | Unauthorized - Authentication required |
+| 403 | Forbidden - Insufficient permissions |
+| 404 | Not Found - Resource doesn't exist |
+| 500 | Internal Server Error |
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="User API" icon="user" href="/api/server/user">
+    Authentication, user management, and profiles
+  </Card>
+  <Card title="File API" icon="file" href="/api/server/file">
+    Upload and retrieve files
+  </Card>
+  <Card title="Document API" icon="book" href="/api/server/document">
+    Create and manage documents
+  </Card>
+  <Card title="Core API" icon="database" href="/api/server/core">
+    Base CRUD operations
+  </Card>
+</CardGroup>

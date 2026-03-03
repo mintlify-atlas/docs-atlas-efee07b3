@@ -1,0 +1,251 @@
+---
+title: underpost start
+description: Start application servers, build pipelines, and deployment services
+---
+
+The `underpost start` command initiates application servers, triggers build processes, and manages deployment services based on the deployment ID and environment.
+
+## Usage
+
+```bash
+underpost start <deploy-id> [env] [options]
+```
+
+## Arguments
+
+<ParamField path="deploy-id" type="string" required>
+  The unique identifier for the deployment configuration.
+
+  Examples: `dd-default`, `dd-production`, `dd-dev`
+</ParamField>
+
+<ParamField path="env" type="string" default="development">
+  The environment to start. Common values:
+  - `development` - Development environment
+  - `production` - Production environment
+  - `test` - Testing environment
+</ParamField>
+
+## Options
+
+<ParamField path="--run" type="boolean">
+  Starts application servers and monitors their health.
+
+  This option:
+  - Starts production servers when env is `production`
+  - Starts development servers when env is `development`
+  - Monitors deployment health automatically
+  - Handles replica deployments if configured
+
+  ```bash
+  underpost start dd-default development --run
+  ```
+</ParamField>
+
+<ParamField path="--build" type="boolean">
+  Triggers the client-side application build process.
+
+  Build workflow:
+  - Clones source repository
+  - Installs dependencies
+  - Runs deployment configuration
+  - Executes itc-scripts if present
+  - Builds full client bundle
+
+  ```bash
+  underpost start dd-default production --build
+  ```
+</ParamField>
+
+<ParamField path="--underpost-quickly-install" type="boolean">
+  Uses Underpost Quickly Install for dependency installation.
+
+  This method copies dependencies directly instead of running `npm install`, significantly reducing build time.
+
+  ```bash
+  underpost start dd-default development --build --underpost-quickly-install
+  ```
+</ParamField>
+
+## Build Process
+
+When using the `--build` option, the following steps are executed:
+
+<Steps>
+  <Step title="Clone repository">
+    Clones the engine repository for the specified deploy-id:
+    ```bash
+    cd /home/dd
+    underpost clone <username>/engine-<repo-name>
+    ```
+  </Step>
+  
+  <Step title="Setup directory structure">
+    Creates engine directory and copies repository contents:
+    ```bash
+    mkdir -p /home/dd/engine
+    cp -a ./engine-<repo-name>/. ./engine
+    ```
+  </Step>
+  
+  <Step title="Clone private configuration">
+    Clones private configuration repository:
+    ```bash
+    cd /home/dd/engine
+    underpost clone <username>/engine-<repo-name>-private
+    mv ./engine-<repo-name>-private ./engine-private
+    ```
+  </Step>
+  
+  <Step title="Install dependencies">
+    Installs npm packages (or uses quick install):
+    ```bash
+    npm install
+    # or
+    underpost install
+    ```
+  </Step>
+  
+  <Step title="Configure deployment">
+    Applies deployment configuration:
+    ```bash
+    node bin/deploy conf <deploy-id> <env>
+    ```
+  </Step>
+  
+  <Step title="Run ITC scripts">
+    Executes in-the-container scripts if present:
+    ```bash
+    node ./engine-private/itc-scripts/<script-name>
+    ```
+  </Step>
+  
+  <Step title="Build client">
+    Builds the full client application:
+    ```bash
+    node bin/deploy build-full-client <deploy-id>
+    ```
+  </Step>
+</Steps>
+
+## Run Process
+
+When using the `--run` option:
+
+<Steps>
+  <Step title="Configure environment">
+    Loads deployment configuration:
+    ```bash
+    node bin/deploy conf <deploy-id> <env>
+    ```
+  </Step>
+  
+  <Step title="Start replicas">
+    Starts replica servers if configured in `./engine-private/replica`
+  </Step>
+  
+  <Step title="Start main server">
+    Executes the appropriate npm script:
+    - Production: `npm run prod-img <deploy-id>`
+    - Development: `npm run dev-img <deploy-id>`
+  </Step>
+  
+  <Step title="Monitor health">
+    Waits for deployment monitor to confirm server health
+  </Step>
+  
+  <Step title="Set status">
+    Updates container status to running state
+  </Step>
+</Steps>
+
+## Container Status States
+
+The command sets the following container status values:
+
+- `<deploy-id>-<env>-build-deployment` - During build phase
+- `<deploy-id>-<env>-initializing-deployment` - After build, before run
+- `<deploy-id>-<env>-running-deployment` - Server running successfully
+
+## Examples
+
+### Start Development Server
+
+```bash
+underpost start dd-default development --run
+```
+
+### Start Production Server
+
+```bash
+underpost start dd-production production --run
+```
+
+### Build and Run Development Environment
+
+```bash
+underpost start dd-default development --build --run
+```
+
+### Build with Quick Install
+
+```bash
+underpost start dd-default development --build --underpost-quickly-install
+```
+
+### Build Production Bundle
+
+```bash
+underpost start dd-production production --build
+```
+
+### Complete Deployment Workflow
+
+<Steps>
+  <Step title="Build the application">
+    ```bash
+    underpost start dd-production production --build --underpost-quickly-install
+    ```
+  </Step>
+  
+  <Step title="Start the servers">
+    ```bash
+    underpost start dd-production production --run
+    ```
+  </Step>
+  
+  <Step title="Monitor deployment">
+    The command automatically monitors server health and confirms successful startup
+  </Step>
+</Steps>
+
+## Environment Variables
+
+The command reads environment configuration from:
+- `./engine-private/conf/<deploy-id>/.env.<env>`
+- `./engine-private/replica/<deploy-id>/.env.<env>` (for replicas)
+
+## Error Handling
+
+### Build Failures
+
+If the build fails, check:
+- Repository access credentials
+- Network connectivity
+- Disk space availability
+- npm package dependencies
+
+### Run Failures
+
+If servers fail to start:
+- Verify port availability
+- Check deployment configuration
+- Review server logs
+- Confirm environment variables
+
+## Related Commands
+
+- [underpost new](/cli/commands/new) - Create new deployments
+- [underpost deploy](/cli/commands/deploy) - Manage Kubernetes deployments
+- [underpost build](/cli/commands/build) - Build operations
+- [underpost monitor](/cli/commands/monitor) - Monitor deployment health

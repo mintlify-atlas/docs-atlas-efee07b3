@@ -1,0 +1,331 @@
+---
+title: underpost deploy
+description: Manage application deployments to Kubernetes clusters
+---
+
+Manages application deployments to Kubernetes clusters, including building manifests, syncing configurations, and exposing services.
+
+## Usage
+
+```bash
+underpost deploy [deploy-list] [env] [options]
+```
+
+## Arguments
+
+<ParamField path="deploy-list" type="string">
+  A comma-separated list of deployment IDs (e.g., "default-a,default-b"). Defaults to "dd-default".
+</ParamField>
+
+<ParamField path="env" type="string">
+  The environment for deployment (e.g., "development", "production"). Defaults to "development".
+</ParamField>
+
+## Options
+
+### Core Operations
+
+<ParamField path="--remove" type="boolean">
+  Deletes specified deployments and their associated services.
+</ParamField>
+
+<ParamField path="--sync" type="boolean">
+  Synchronizes deployment environment variables, ports, and replica counts.
+</ParamField>
+
+<ParamField path="--build-manifest" type="boolean">
+  Builds Kubernetes YAML manifests, including deployments, services, proxies, and secrets.
+</ParamField>
+
+<ParamField path="--expose" type="boolean">
+  Exposes services matching the provided deployment ID list.
+</ParamField>
+
+### Information & Status
+
+<ParamField path="--info-router" type="boolean">
+  Displays the current router structure and configuration.
+</ParamField>
+
+<ParamField path="--status" type="boolean">
+  Retrieves current network traffic data from resource deployments and the host machine network configuration.
+</ParamField>
+
+### Configuration
+
+<ParamField path="--replicas" type="string">
+  Sets a custom number of replicas for deployments.
+</ParamField>
+
+<ParamField path="--image" type="string">
+  Sets a custom image for deployments.
+</ParamField>
+
+<ParamField path="--versions" type="string">
+  A comma-separated list of custom deployment versions (e.g., "blue,green").
+</ParamField>
+
+<ParamField path="--traffic" type="string">
+  A comma-separated list of custom deployment traffic weights.
+</ParamField>
+
+<ParamField path="--cmd" type="string">
+  Custom initialization command for deployment (comma-separated commands).
+</ParamField>
+
+### Network & Timeouts
+
+<ParamField path="--timeout-response" type="string">
+  Sets HTTPProxy per-route response timeout (e.g., "1s", "300ms", "infinity").
+</ParamField>
+
+<ParamField path="--timeout-idle" type="string">
+  Sets HTTPProxy per-route idle timeout (e.g., "10s", "infinity").
+</ParamField>
+
+<ParamField path="--retry-count" type="string">
+  Sets HTTPProxy per-route retry count (e.g., 3).
+</ParamField>
+
+<ParamField path="--retry-per-try-timeout" type="string">
+  Sets HTTPProxy retry per-try timeout (e.g., "150ms").
+</ParamField>
+
+<ParamField path="--port" type="string">
+  Sets up port forwarding from local to remote ports.
+</ParamField>
+
+<ParamField path="--expose-port" type="string">
+  Sets the local:remote port to expose when --expose is active (overrides auto-detected service port).
+</ParamField>
+
+### TLS/SSL Certificates
+
+<ParamField path="--cert" type="boolean">
+  Resets TLS/SSL certificate secrets for deployments.
+</ParamField>
+
+<ParamField path="--cert-hosts" type="string">
+  Resets TLS/SSL certificate secrets for specified hosts (comma-separated).
+</ParamField>
+
+### Update Controls
+
+<ParamField path="--disable-update-deployment" type="boolean">
+  Disables updates to deployments.
+</ParamField>
+
+<ParamField path="--disable-update-proxy" type="boolean">
+  Disables updates to proxies.
+</ParamField>
+
+<ParamField path="--disable-deployment-proxy" type="boolean">
+  Disables proxies of deployments.
+</ParamField>
+
+<ParamField path="--disable-update-volume" type="boolean">
+  Disables updates to volume mounts during deployment.
+</ParamField>
+
+<ParamField path="--disable-update-underpost-config" type="boolean">
+  Disables updates to Underpost configuration during deployment.
+</ParamField>
+
+### Kubernetes Context
+
+<ParamField path="--namespace" type="string">
+  Kubernetes namespace for deployment operations (defaults to "default").
+</ParamField>
+
+<ParamField path="--kubeadm" type="boolean">
+  Enables the kubeadm context for deployment operations.
+</ParamField>
+
+<ParamField path="--kind-type" type="string">
+  Specifies the Kind cluster type for deployment operations.
+</ParamField>
+
+<ParamField path="--node" type="string">
+  Sets optional node for deployment operations.
+</ParamField>
+
+### Host Configuration
+
+<ParamField path="--etc-hosts" type="boolean">
+  Enables the etc-hosts context for deployment operations.
+</ParamField>
+
+<ParamField path="--restore-hosts" type="boolean">
+  Restores default `/etc/hosts` entries.
+</ParamField>
+
+## Examples
+
+### Deploy to Development Environment
+
+```bash
+underpost deploy my-app development
+```
+
+Deploys `my-app` to the development environment with default settings.
+
+### Build Manifest with Custom Replicas
+
+```bash
+underpost deploy my-app production --build-manifest --replicas 3
+```
+
+Builds production manifests with 3 replicas for the deployment.
+
+### Deploy with Blue-Green Traffic Split
+
+```bash
+underpost deploy my-app production \
+  --versions blue,green \
+  --traffic blue \
+  --replicas 2
+```
+
+Deploys blue and green versions with traffic directed to blue.
+
+### Expose Service with Port Forwarding
+
+```bash
+underpost deploy my-app development --expose --port 8080
+```
+
+Exposes the service and sets up port forwarding on port 8080.
+
+### Configure HTTPProxy Timeouts
+
+```bash
+underpost deploy my-app production \
+  --build-manifest \
+  --timeout-response 5s \
+  --timeout-idle 10s \
+  --retry-count 3
+```
+
+Builds manifests with custom timeout and retry policies.
+
+### Get Deployment Status
+
+```bash
+underpost deploy my-app production --status
+```
+
+Retrieves current deployment status, traffic configuration, and network data.
+
+### Deploy to Custom Namespace
+
+```bash
+underpost deploy my-app development --namespace my-namespace
+```
+
+Deploys to a specific Kubernetes namespace.
+
+### Create TLS Certificates
+
+```bash
+underpost deploy --cert-hosts api.example.com,app.example.com
+```
+
+Creates TLS certificates for specified hosts using cert-manager.
+
+### Remove Deployment
+
+```bash
+underpost deploy my-app production --remove
+```
+
+Removes the deployment and all associated resources.
+
+## Workflow
+
+<Steps>
+  <Step title="Build Manifests">
+    Generate Kubernetes YAML files including Deployments, Services, and HTTPProxy resources.
+    
+    ```bash
+    underpost deploy my-app production --build-manifest
+    ```
+  </Step>
+  
+  <Step title="Apply to Cluster">
+    Manifests are automatically applied to the cluster using `kubectl apply`.
+    
+    The command creates:
+    - Deployment resources with specified replicas
+    - Service resources for networking
+    - HTTPProxy resources for ingress routing
+    - ConfigMaps for configuration
+  </Step>
+  
+  <Step title="Monitor Status">
+    Check deployment health and traffic routing.
+    
+    ```bash
+    underpost deploy my-app production --status
+    ```
+  </Step>
+</Steps>
+
+## Kubernetes Resources Created
+
+### Deployment
+
+Creates a Kubernetes Deployment with:
+- Custom container image (rockylinux9-underpost by default)
+- Resource limits and requests
+- Volume mounts for configuration and data
+- Init commands to install dependencies and start services
+
+### Service
+
+Creates a LoadBalancer Service:
+- Maps container ports to cluster ports
+- Enables service discovery within the cluster
+- Configures port ranges for multiple services
+
+### HTTPProxy
+
+Creates Contour HTTPProxy resources:
+- Routes traffic based on path prefixes
+- Configures TLS/SSL certificates
+- Implements timeout and retry policies
+- Supports weighted traffic splitting for blue-green deployments
+
+### ConfigMap
+
+Stores configuration:
+- Environment variables from `.env` files
+- Application settings
+- Service configuration
+
+## Blue-Green Deployments
+
+Underpost supports blue-green deployment patterns:
+
+```bash
+# Deploy both versions
+underpost deploy my-app production \
+  --build-manifest \
+  --versions blue,green \
+  --traffic blue \
+  --replicas 2
+
+# Switch traffic to green
+underpost deploy my-app production \
+  --build-manifest \
+  --versions blue,green \
+  --traffic green \
+  --replicas 2
+```
+
+Traffic weight is controlled in the HTTPProxy service configuration, allowing zero-downtime deployments.
+
+## Related Commands
+
+- [`underpost cluster`](/cli/commands/cluster) - Initialize and manage Kubernetes clusters
+- [`underpost image`](/cli/commands/image) - Build and manage container images
+- [`underpost monitor`](/cli/commands/monitor) - Monitor deployment health and readiness

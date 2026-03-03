@@ -1,0 +1,439 @@
+---
+title: Client Services
+description: Utility services for translation, logging, and validation
+---
+
+## Translate
+
+Multi-language translation service with real-time language switching.
+
+### Initialization
+
+```javascript
+import { TranslateCore } from './Translate.js';
+
+await TranslateCore.Init();
+```
+
+### Render Translations
+
+#### Translate.Render(keyLang, placeholder, options)
+
+Render a translated string.
+
+<ParamField path="keyLang" type="string" required>
+  Translation key registered in `Translate.Data`
+</ParamField>
+<ParamField path="placeholder" type="string">
+  CSS selector for placeholder mode
+</ParamField>
+<ParamField path="options.disableTextFormat" type="boolean" default="false">
+  Disable automatic text formatting (capitalization)
+</ParamField>
+
+```javascript
+import { Translate } from './Translate.js';
+
+// Basic usage
+const text = Translate.Render('username');
+// Returns: <span class="trans123">Username</span>
+
+// Disable formatting
+const raw = Translate.Render('email', null, { disableTextFormat: true });
+// Returns: <span class="trans456">Email</span>
+
+// Placeholder mode
+const placeholder = Translate.Render('search', '.search-input');
+```
+
+### Add Custom Translations
+
+```javascript
+import { Translate } from './Translate.js';
+
+Translate.Data['my-custom-key'] = {
+  en: 'Hello World',
+  es: 'Hola Mundo'
+};
+
+const greeting = Translate.Render('my-custom-key');
+```
+
+### Change Language
+
+#### Translate.renderLang(language)
+
+Switch the application language.
+
+<ParamField path="language" type="string" required>
+  Language code ('en', 'es', etc.)
+</ParamField>
+
+```javascript
+import { Translate } from './Translate.js';
+
+Translate.renderLang('es'); // Switch to Spanish
+Translate.renderLang('en'); // Switch to English
+```
+
+### Language Settings Dropdown
+
+#### Translate.RenderSetting(id)
+
+Render a language selection dropdown.
+
+```javascript
+import { Translate } from './Translate.js';
+
+const langSelector = await Translate.RenderSetting('settings-lang');
+```
+
+### Translation Events
+
+Register listeners for language changes:
+
+```javascript
+import { Translate } from './Translate.js';
+
+Translate.Event['my-listener'] = () => {
+  console.log('Language changed to:', s('html').lang);
+};
+```
+
+### Common Translation Keys
+
+Here are some commonly used translation keys:
+
+<CodeGroup>
+```javascript Form Labels
+Translate.Render('username')    // Username / Nombre de usuario
+Translate.Render('password')    // Password / Contraseña
+Translate.Render('email')       // Email / Correo Electronico
+Translate.Render('search')      // Search / Buscar
+```
+
+```javascript Actions
+Translate.Render('save')        // Save / Guardar
+Translate.Render('delete')      // Delete / Eliminar
+Translate.Render('edit')        // Edit / Editar
+Translate.Render('cancel')      // Cancel / Cancelar
+Translate.Render('confirm')     // Confirm / Confirmar
+```
+
+```javascript Status
+Translate.Render('success-update-user')  // User update successfully
+Translate.Render('error-update-user')    // Error update user
+Translate.Render('no-result-found')      // No results found
+```
+</CodeGroup>
+
+---
+
+## Logger
+
+Development logging utility with module tracking and stack traces.
+
+### Factory Function
+
+#### loggerFactory(meta, options)
+
+Create a logger instance for a module.
+
+<ParamField path="meta" type="object" required>
+  Import meta object (`import.meta`)
+</ParamField>
+<ParamField path="options.trace" type="boolean" default="false">
+  Include stack traces in log output
+</ParamField>
+
+```javascript
+import { loggerFactory } from './Logger.js';
+
+const logger = loggerFactory(import.meta, { trace: true });
+```
+
+### Log Methods
+
+<ParamField path="logger.error" type="function">
+  Log error messages
+</ParamField>
+<ParamField path="logger.warn" type="function">
+  Log warning messages
+</ParamField>
+<ParamField path="logger.info" type="function">
+  Log informational messages
+</ParamField>
+<ParamField path="logger.debug" type="function">
+  Log debug messages
+</ParamField>
+
+```javascript
+logger.error('Failed to load user', { userId: '123' });
+logger.warn('Deprecated API usage detected');
+logger.info('User logged in', { username: 'john' });
+logger.debug('Processing request', { params });
+```
+
+### Output Format
+
+Logs include module name and timestamp:
+
+```
+[UserService.js] 2024-01-15T10:30:45.123Z error: Failed to load user { userId: '123' }
+```
+
+### Development Mode
+
+Loggers only output in development mode (`window.renderPayload.dev`):
+
+```javascript
+// Production: no output
+// Development: full logging
+logger.info('This only appears in dev mode');
+```
+
+### Example Usage
+
+```javascript
+import { loggerFactory } from './Logger.js';
+
+const logger = loggerFactory(import.meta, { trace: true });
+
+class UserManager {
+  async loadUser(userId) {
+    logger.info('Loading user', { userId });
+    
+    try {
+      const user = await fetchUser(userId);
+      logger.info('User loaded successfully', { user });
+      return user;
+    } catch (error) {
+      logger.error('Failed to load user', { userId, error });
+      throw error;
+    }
+  }
+}
+```
+
+---
+
+## Validator
+
+Form validation service with real-time feedback and error rendering.
+
+### Instance
+
+#### Validator.instance(validators, callBack)
+
+Create a validation function for form inputs.
+
+<ParamField path="validators" type="array" required>
+  Array of validator configurations
+</ParamField>
+<ParamField path="callBack" type="function">
+  Optional callback executed after each validation
+</ParamField>
+
+```javascript
+import { Validator } from './Validator.js';
+
+const validate = Validator.instance([
+  {
+    id: 'email-input',
+    rules: [
+      { type: 'isEmpty' },
+      { type: 'isEmail' }
+    ]
+  },
+  {
+    id: 'password-input',
+    rules: [
+      { type: 'isEmpty' },
+      { type: 'isStrongPassword' }
+    ]
+  },
+  {
+    id: 'password-confirm-input',
+    rules: [
+      { type: 'passwordMismatch', options: 'password-input' }
+    ]
+  }
+]);
+
+// Execute validation
+const result = await validate();
+if (!result.errorMessage) {
+  // Form is valid
+  submitForm();
+}
+```
+
+### Validator Configuration
+
+<ParamField path="id" type="string" required>
+  Input element ID to validate
+</ParamField>
+<ParamField path="rules" type="array" required>
+  Array of validation rules
+</ParamField>
+<ParamField path="disable" type="function">
+  Function returning true to skip validation
+</ParamField>
+
+### Validation Rules
+
+<CodeGroup>
+```javascript Basic Rules
+{ type: 'isEmpty' }                          // Check if empty
+{ type: 'isEmail' }                          // Validate email format
+{ type: 'isLength', options: { min: 2, max: 20 } }  // Length validation
+```
+
+```javascript Password Rules
+{ type: 'isStrongPassword' }                 // Strong password check
+{ type: 'passwordMismatch', options: 'password-input' }  // Match another field
+```
+
+```javascript Custom Rules
+{ type: 'isValidUsername' }                  // Username format (alphanumeric + _-)
+{ type: 'isChileanIdentityDocument' }        // Chilean RUT validation
+{ type: 'isMobilePhone' }                    // Phone number validation
+```
+</CodeGroup>
+
+### Real-Time Validation
+
+Validators automatically attach to input events:
+
+```javascript
+const validate = Validator.instance([
+  {
+    id: 'username-input',
+    rules: [
+      { type: 'isEmpty' },
+      { type: 'isValidUsername' },
+      { type: 'isLength', options: { min: 3, max: 20 } }
+    ]
+  }
+]);
+
+// Validation runs automatically on input/blur events
+// Error messages appear in .input-info-username-input
+```
+
+### Validation Result
+
+The validation function returns:
+
+```javascript
+const result = await validate();
+// {
+//   errorMessage: '',           // HTML error messages
+//   errorKeys: [],             // IDs of inputs with errors
+//   successKeys: ['email-input', 'username-input']  // Valid inputs
+// }
+```
+
+### Custom Validation Callback
+
+```javascript
+const validate = Validator.instance(
+  validators,
+  (validatorData) => {
+    console.log('Validated:', validatorData.id);
+  }
+);
+```
+
+### Conditional Validation
+
+```javascript
+const validate = Validator.instance([
+  {
+    id: 'phone-input',
+    rules: [{ type: 'isMobilePhone' }],
+    disable: () => {
+      // Skip validation if phone is optional and empty
+      return !s('.phone-required-checkbox').checked;
+    }
+  }
+]);
+```
+
+### Error Rendering
+
+Errors are automatically rendered in `.input-info-{id}` containers:
+
+```html
+<!-- Valid input -->
+<div class="input-info-email-input">
+  ✓ ok
+</div>
+
+<!-- Invalid input -->
+<div class="input-info-email-input">
+  ✗ Please enter a valid email address
+</div>
+```
+
+### Complete Form Example
+
+```javascript
+import { Input } from './Input.js';
+import { BtnIcon } from './BtnIcon.js';
+import { Validator } from './Validator.js';
+import { Translate } from './Translate.js';
+
+// Render form
+const formHtml = html`
+  ${await Input.Render({
+    id: 'email-input',
+    type: 'email',
+    label: Translate.Render('email')
+  })}
+  ${await Input.Render({
+    id: 'password-input',
+    type: 'password',
+    label: Translate.Render('password')
+  })}
+  ${await BtnIcon.Render({
+    class: 'btn-submit',
+    type: 'submit',
+    label: Translate.Render('log-in')
+  })}
+`;
+
+// Set up validation
+const validate = Validator.instance([
+  {
+    id: 'email-input',
+    rules: [
+      { type: 'isEmpty' },
+      { type: 'isEmail' }
+    ]
+  },
+  {
+    id: 'password-input',
+    rules: [
+      { type: 'isEmpty' },
+      { type: 'isStrongPassword' }
+    ]
+  }
+]);
+
+// Handle form submission
+s('form').onsubmit = async (e) => {
+  e.preventDefault();
+  
+  const result = await validate();
+  if (result.errorMessage) {
+    console.log('Validation failed:', result.errorKeys);
+    return;
+  }
+  
+  // Proceed with form submission
+  const email = s('.email-input').value;
+  const password = s('.password-input').value;
+  await submitLogin({ email, password });
+};
+```

@@ -1,0 +1,229 @@
+---
+title: 'underpost test'
+description: 'Run tests and manage test execution in containers'
+---
+
+## Overview
+
+The `underpost test` command manages and runs tests for Underpost deployments, supporting both local and in-container test execution.
+
+## Usage
+
+```bash
+underpost test [deploy-list] [options]
+```
+
+## Arguments
+
+<ParamField path="deploy-list" type="string">
+  Comma-separated list of deployment IDs to test (e.g., `default-a,default-b`)
+</ParamField>
+
+## Options
+
+### Execution Context
+
+<ParamField path="--itc" type="boolean">
+  Executes tests within the container execution context
+</ParamField>
+
+### Debugging
+
+<ParamField path="--sh" type="boolean">
+  Copies the container entrypoint shell command to the clipboard
+</ParamField>
+
+<ParamField path="--logs" type="boolean">
+  Displays container logs for test debugging
+</ParamField>
+
+### Pod Selection
+
+<ParamField path="--pod-name" type="string">
+  Specifies the pod name for test execution
+</ParamField>
+
+<ParamField path="--pod-status" type="string">
+  Filters tests by pod status (e.g., `Running`, `Completed`)
+</ParamField>
+
+<ParamField path="--kind-type" type="string">
+  Specifies the Kind cluster type for tests (e.g., `pods`, `jobs`)
+</ParamField>
+
+## Examples
+
+### Run Default Test Suite
+
+```bash
+underpost test
+```
+
+Runs the default Underpost test suite locally.
+
+### Test Specific Deployment
+
+```bash
+underpost test default
+```
+
+Tests all pods in the default deployment.
+
+### Test Inside Container
+
+```bash
+underpost test default --itc
+```
+
+Executes tests within the container context.
+
+### Test Multiple Deployments
+
+```bash
+underpost test default-a,default-b
+```
+
+Runs tests for multiple deployments sequentially.
+
+### Get Container Shell Command
+
+```bash
+underpost test default --sh
+```
+
+Copies the kubectl exec command to your clipboard:
+```bash
+sudo kubectl exec -it <pod-name> -- sh
+```
+
+### View Container Logs
+
+```bash
+underpost test default --logs
+```
+
+Streams logs from the deployment's pod:
+```bash
+sudo kubectl logs -f <pod-name>
+```
+
+### Monitor Pod Status
+
+```bash
+underpost test --pod-name my-pod-0 --pod-status Running
+```
+
+Monitors and waits for the pod to reach Running status.
+
+### Monitor with Custom Parameters
+
+```bash
+underpost test --pod-name my-job --pod-status Completed --kind-type jobs
+```
+
+Monitors a Kubernetes Job until completion.
+
+## Test Execution Flow
+
+<Steps>
+  <Step title="Without Deployment ID">
+    Runs the default Underpost test suite:
+    ```bash
+    cd <npm-root>/underpost && npm run test
+    ```
+  </Step>
+  
+  <Step title="With Deployment ID">
+    Retrieves all pods for the deployment and executes tests in each pod.
+  </Step>
+  
+  <Step title="Container Execution">
+    For each pod, runs:
+    ```bash
+    kubectl exec -i <pod-name> -- sh -c "cd /home/dd/engine && underpost test <deploy-id> --inside-container"
+    ```
+  </Step>
+  
+  <Step title="Inside Container">
+    When `--itc` flag is set, runs deployment-specific test logic or default npm test.
+  </Step>
+</Steps>
+
+## Deployment-Specific Tests
+
+Certain deployments have specialized test handlers:
+
+### dd-lampp
+
+Tests MariaDB connectivity:
+
+```bash
+underpost test dd-lampp --itc
+```
+
+Executes:
+```sql
+SHOW TABLES FROM <database>
+```
+
+### Default
+
+Runs standard npm test suite:
+
+```bash
+npm run test
+```
+
+## Status Monitoring
+
+The status monitor polls pod status at regular intervals:
+
+- **Default interval**: 1000ms (1 second)
+- **Maximum attempts**: 300 (5 minutes)
+- **Supported statuses**: `Running`, `Completed`, `Failed`, etc.
+
+Example monitoring output:
+```
+Loading instance { podName: 'my-pod', status: 'Running' }
+Testing pod my-pod... 0/1 - elapsed time 1000s - attempt 1/300
+Testing pod my-pod... 0/1 - elapsed time 2000s - attempt 2/300
+Testing pod my-pod... 1/1 - elapsed time 3000s - attempt 3/300
+```
+
+## Common Use Cases
+
+### Continuous Testing
+
+```bash
+while true; do
+  underpost test default --itc
+  sleep 60
+done
+```
+
+### Debug Failed Tests
+
+```bash
+# Get shell access
+underpost test default --sh
+
+# View logs
+underpost test default --logs
+```
+
+### Wait for Deployment Ready
+
+```bash
+underpost test --pod-name myapp-0 --pod-status Running
+if [ $? -eq 0 ]; then
+  echo "Deployment is ready"
+fi
+```
+
+## Notes
+
+- Tests run with the working directory set to `/home/dd/engine` in containers
+- The `--sh` option is useful for manual debugging sessions
+- Status monitoring returns exit code 0 on success, 1 on failure
+- When no pods are found, a warning is logged but no error is thrown
+- The `--itc` flag should only be used when already inside a container context

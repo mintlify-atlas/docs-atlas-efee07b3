@@ -1,0 +1,391 @@
+---
+title: Routing and View System
+description: Client-side routing, navigation, and view management in Underpost
+---
+
+The Underpost framework provides a sophisticated client-side routing system built on the browser's History API. The Router component handles navigation, URL management, and view rendering without full page reloads.
+
+## Route Configuration
+
+Routes are defined in the client configuration:
+
+```javascript conf.js
+client: {
+  default: {
+    views: [
+      { path: '/', title: 'Home', client: 'Default', ssr: 'Default' },
+      { path: '/home', title: 'Home', client: 'Default', ssr: 'Default' },
+      { path: '/settings', client: 'Default', ssr: 'Default' },
+      { path: '/log-in', client: 'Default', ssr: 'Default' },
+      { path: '/sign-up', client: 'Default', ssr: 'Default' },
+      { path: '/account', client: 'Default', ssr: 'Default' },
+      { path: '/docs', client: 'Default', ssr: 'Default' },
+      { path: '/u', client: 'Default', ssr: 'Default' },
+      { path: '/404', title: '404 Not Found', client: 'Default', ssr: 'Default' },
+      { path: '/500', title: '500 Server Error', client: 'Default', ssr: 'Default' },
+    ]
+  }
+}
+```
+
+<ParamField path="path" type="string" required>
+  The URL path for the route
+</ParamField>
+
+<ParamField path="title" type="string">
+  Page title (appears in browser tab)
+</ParamField>
+
+<ParamField path="client" type="string" required>
+  Client configuration ID to use
+</ParamField>
+
+<ParamField path="ssr" type="string" required>
+  SSR configuration ID for server-side rendering
+</ParamField>
+
+## Router Implementation
+
+The Router component matches URLs to route definitions and renders views:
+
+```javascript Router.js
+const Router = function (options = { Routes: () => {}, e: new PopStateEvent() }) {
+  const { e, Routes } = options;
+  const proxyPath = getProxyPath();
+  let path = window.location.pathname;
+
+  for (let route of Object.keys(Routes())) {
+    route = route.slice(1);
+    let pushPath = `${proxyPath}${route}`;
+
+    if (path[path.length - 1] !== '/') path = `${path}/`;
+    
+    // Handle clean profile URLs: match /u/username with /u route
+    let matchPath = path;
+    if (route === 'u' && path.startsWith(`${proxyPath}u/`) && path !== `${proxyPath}u/`) {
+      handleCleanProfileUrl(path);
+      matchPath = `${proxyPath}u/`;
+    }
+
+    if (matchPath === pushPath) {
+      for (const event of Object.keys(RouterEvents)) RouterEvents[event](routerEvent);
+      subMenuHandler(Object.keys(Routes()), route);
+      setDocTitle(route);
+      return Routes()[`/${route}`].render();
+    }
+  }
+};
+```
+
+## Navigation Methods
+
+### setPath
+
+Navigate to a new path:
+
+```javascript
+import { setPath } from './components/core/Router.js';
+
+// Basic navigation
+setPath('/settings');
+
+// With options
+setPath('/account', {
+  removeSearch: false,  // Keep query parameters
+  removeHash: false,    // Keep hash fragment
+  replace: false,       // Use pushState (creates history entry)
+  force: false          // Allow same-path navigation
+});
+
+// Replace current history entry
+setPath('/log-in', { replace: true });
+```
+
+### setQueryPath
+
+Navigate with query parameters:
+
+```javascript
+import { setQueryPath } from './components/core/Router.js';
+
+// Navigate to /docs?cid=getting-started
+setQueryPath(
+  { path: 'docs', queryPath: 'getting-started' },
+  'cid'  // query key
+);
+
+// Replace instead of push
+setQueryPath(
+  { path: 'docs', queryPath: 'api-reference' },
+  'cid',
+  { replace: true }
+);
+```
+
+### setQueryParams
+
+Update query parameters without changing path:
+
+```javascript
+import { setQueryParams } from './components/core/Router.js';
+
+// Set multiple parameters
+setQueryParams({
+  page: 2,
+  filter: 'active',
+  sort: 'date'
+});
+
+// Remove a parameter (set to null)
+setQueryParams({ filter: null });
+
+// Push to history instead of replace
+setQueryParams({ page: 3 }, { replace: false });
+```
+
+## Query Parameters
+
+### getQueryParams
+
+Read current query parameters:
+
+```javascript
+import { getQueryParams } from './components/core/Router.js';
+
+const params = getQueryParams();
+console.log(params.cid);  // 'getting-started'
+console.log(params.page); // '2'
+```
+
+### Listen to Query Changes
+
+React to query parameter changes:
+
+```javascript
+import { listenQueryParamsChange } from './components/core/Router.js';
+
+listenQueryParamsChange({
+  id: 'my-listener',
+  event: (params) => {
+    console.log('Query params changed:', params);
+    // Update UI based on new params
+  }
+});
+```
+
+### Listen to Specific Query Path
+
+Monitor a specific query parameter on a route:
+
+```javascript
+import { listenQueryPathInstance } from './components/core/Router.js';
+
+listenQueryPathInstance(
+  {
+    id: 'doc-listener',
+    routeId: 'docs',
+    event: (docId) => {
+      if (docId) {
+        // Load document with ID
+        loadDocument(docId);
+      } else {
+        // Show document list
+        showDocumentList();
+      }
+    }
+  },
+  'cid'  // query key to monitor
+);
+```
+
+## Clean URLs
+
+The router supports clean URL patterns for better UX:
+
+### Profile URLs
+
+```javascript
+import { navigateToProfile, extractUsernameFromPath } from './components/core/Router.js';
+
+// Navigate to /u/johndoe instead of /u?cid=johndoe
+navigateToProfile('johndoe');
+
+// Replace current history entry
+navigateToProfile('janedoe', { replace: true });
+
+// Extract username from current URL
+const username = extractUsernameFromPath();
+// If URL is /u/johndoe, returns 'johndoe'
+```
+
+## Router Events
+
+Listen to route changes:
+
+```javascript
+import { RouterEvents } from './components/core/Router.js';
+
+RouterEvents['my-event'] = ({ path, pushPath, route }) => {
+  console.log('Route changed:', route);
+  console.log('Current path:', path);
+  console.log('Push path:', pushPath);
+  
+  // Execute logic on route change
+  if (route === 'settings') {
+    loadUserSettings();
+  }
+};
+```
+
+## Modal Integration
+
+Routes can be linked to modals for overlay navigation:
+
+```javascript
+import { handleModalViewRoute } from './components/core/Router.js';
+import { Modal } from './components/core/Modal.js';
+
+// Render modal with route
+Modal.Render({
+  id: 'settings-modal',
+  html: async () => html`<div>Settings Content</div>`,
+  title: 'Settings',
+  options: {
+    route: 'settings'  // Updates URL to /settings
+  }
+});
+
+// Handle modal view routing
+handleModalViewRoute({
+  route: 'settings',
+  RouterInstance: { Routes: () => ({ /* routes */ }) }
+});
+```
+
+### Close Modal Route Changes
+
+Automatically update URL when modals close:
+
+```javascript
+import { closeModalRouteChangeEvent } from './components/core/Router.js';
+
+// Called automatically when modal closes
+closeModalRouteChangeEvent({ closedId: 'settings-modal' });
+// URL updates to previous route or home
+```
+
+## Document Title Management
+
+```javascript
+import { setDocTitle } from './components/core/Router.js';
+
+// Set document title based on route
+setDocTitle('settings');
+// Document title becomes: "Settings | App Title"
+
+setDocTitle('/');
+// Document title becomes: "Home | App Title"
+```
+
+## Proxy Path Support
+
+The router supports deployment in subdirectories:
+
+```javascript
+import { getProxyPath } from './components/core/Router.js';
+
+// If deployed at example.com/app/
+const proxyPath = getProxyPath();
+// Returns: '/app/'
+
+// If deployed at root
+const proxyPath = getProxyPath();
+// Returns: '/'
+```
+
+## Route Sanitization
+
+```javascript
+import { sanitizeRoute } from './components/core/Router.js';
+
+const sanitized = sanitizeRoute('/my-page/');
+// Returns: 'my-page'
+
+const sanitized = sanitizeRoute('/');
+// Returns: 'home'
+```
+
+## History API
+
+The router uses the browser's History API:
+
+- **pushState**: Creates new history entry (default)
+- **replaceState**: Replaces current entry
+- **popstate event**: Handles back/forward buttons
+
+```javascript
+// Initialize router and listen for back/forward
+const LoadRouter = function (RouterInstance) {
+  Router(RouterInstance);
+  window.onpopstate = (e) => {
+    Router({ ...RouterInstance, e });
+    // Notify query params listeners
+    const updatedParams = getQueryParams();
+    for (const listenerId in queryParamsChangeListeners) {
+      queryParamsChangeListeners[listenerId](updatedParams);
+    }
+  };
+};
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use replace for same-path updates">
+    When updating query parameters on the same route, use `replace: true` to avoid cluttering browser history.
+    
+    ```javascript
+    setQueryParams({ page: 2 }, { replace: true });
+    ```
+  </Accordion>
+  
+  <Accordion title="Clean URLs for better UX">
+    Use clean URL patterns like `/u/username` instead of `/u?cid=username` for user-facing routes.
+    
+    ```javascript
+    navigateToProfile('johndoe');
+    ```
+  </Accordion>
+  
+  <Accordion title="Listen to query changes">
+    Use `listenQueryParamsChange` to react to URL parameter changes for dynamic content loading.
+    
+    ```javascript
+    listenQueryParamsChange({
+      id: 'content-loader',
+      event: (params) => loadContent(params.id)
+    });
+    ```
+  </Accordion>
+  
+  <Accordion title="Handle 404 routes">
+    Always define a 404 route for unmatched paths.
+    
+    ```javascript
+    views: [
+      { path: '/404', title: '404 Not Found', client: 'Default', ssr: 'Default' }
+    ]
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Component System" icon="puzzle-piece" href="/concepts/components">
+    Learn about components used in views
+  </Card>
+  <Card title="Configuration" icon="sliders" href="/concepts/configuration">
+    Configure routes and views
+  </Card>
+</CardGroup>

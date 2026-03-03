@@ -1,0 +1,392 @@
+---
+title: underpost image
+description: Build, manage, and load Docker images into Kubernetes clusters
+---
+
+Manages Docker image operations including building, saving, and loading images into Kubernetes clusters (Kind, Kubeadm, or K3s).
+
+## Usage
+
+```bash
+underpost image [options]
+```
+
+## Options
+
+### Build Operations
+
+<ParamField path="--build" type="boolean">
+  Builds a Docker image using Podman, optionally saves it as a tar archive, and loads it into a specified Kubernetes cluster (Kind, Kubeadm, or K3s).
+</ParamField>
+
+<ParamField path="--pull-base" type="boolean">
+  Pulls base images and builds a "rockylinux9-underpost" image.
+</ParamField>
+
+<ParamField path="--reset" type="boolean">
+  Performs a build without using the cache (no-cache build).
+</ParamField>
+
+### Image Management
+
+<ParamField path="--ls" type="boolean">
+  Lists all available Underpost Dockerfile images.
+</ParamField>
+
+<ParamField path="--rm" type="string">
+  Removes specified Underpost Dockerfile images by image ID.
+</ParamField>
+
+<ParamField path="--spec" type="boolean">
+  Get current cached list of container images used by all pods.
+</ParamField>
+
+### Build Configuration
+
+<ParamField path="--path" type="string">
+  The path to the Dockerfile directory.
+</ParamField>
+
+<ParamField path="--image-name" type="string">
+  Sets a custom name for the Docker image.
+</ParamField>
+
+<ParamField path="--image-path" type="string">
+  Sets the output path for the tar image archive.
+</ParamField>
+
+<ParamField path="--dockerfile-name" type="string">
+  Sets a custom name for the Dockerfile.
+</ParamField>
+
+### Export & Load
+
+<ParamField path="--podman-save" type="boolean">
+  Exports the built image as a tar file using Podman.
+</ParamField>
+
+<ParamField path="--pull-dockerhub" type="string">
+  Sets a custom Docker Hub image for base image pulls.
+</ParamField>
+
+### Cluster Type
+
+<ParamField path="--kind" type="boolean">
+  Set kind cluster env image context management.
+</ParamField>
+
+<ParamField path="--kubeadm" type="boolean">
+  Set kubeadm cluster env image context management.
+</ParamField>
+
+<ParamField path="--k3s" type="boolean">
+  Set k3s cluster env image context management.
+</ParamField>
+
+<ParamField path="--node-name" type="string">
+  Set node name for kubeadm or k3s cluster env image context management.
+</ParamField>
+
+### Kubernetes Context
+
+<ParamField path="--namespace" type="string">
+  Kubernetes namespace for image operations (defaults to "default").
+</ParamField>
+
+### Development
+
+<ParamField path="--dev" type="boolean">
+  Use development mode.
+</ParamField>
+
+## Examples
+
+### Build and Load into Kind
+
+```bash
+underpost image --build --kind \
+  --path . \
+  --image-name my-app:v1.0.0 \
+  --podman-save
+```
+
+Builds an image from the current directory and loads it into a Kind cluster.
+
+### Build Base Image
+
+```bash
+underpost image --pull-base --kind
+```
+
+Pulls Rocky Linux 9 base image and builds the rockylinux9-underpost image.
+
+### Build Without Cache
+
+```bash
+underpost image --build --reset \
+  --image-name my-app:latest \
+  --kubeadm
+```
+
+Performs a fresh build without using Docker layer cache.
+
+### List Loaded Images
+
+```bash
+underpost image --ls --kind
+```
+
+Lists all images loaded in the Kind cluster.
+
+### List Images by Pod Spec
+
+```bash
+underpost image --spec --namespace production
+```
+
+Shows images currently used by pods in the production namespace.
+
+### Remove Image
+
+```bash
+underpost image --rm my-app:old-version --kind
+```
+
+Removes an image from the Kind cluster nodes.
+
+### Pull from Docker Hub
+
+```bash
+underpost image --pull-dockerhub nginx:alpine --kind
+```
+
+Pulls nginx:alpine from Docker Hub and loads it into Kind.
+
+### Build Custom Dockerfile
+
+```bash
+underpost image --build \
+  --path ./docker/custom \
+  --dockerfile-name Dockerfile.custom \
+  --image-name custom-app:v2.0.0 \
+  --image-path ./builds \
+  --k3s
+```
+
+Builds from a custom Dockerfile and loads into K3s cluster.
+
+### Build for Kubeadm Cluster
+
+```bash
+underpost image --build \
+  --image-name my-service:latest \
+  --kubeadm \
+  --podman-save \
+  --image-path /tmp/images
+```
+
+Builds image, saves as tar, and imports into Kubeadm cluster using ctr.
+
+## Image Build Workflow
+
+<Steps>
+  <Step title="Build with Podman">
+    Uses Podman to build the Docker image from the Dockerfile.
+    
+    ```bash
+    sudo podman build -f ./Dockerfile -t my-app:latest \
+      --pull=never \
+      --cap-add=CAP_AUDIT_WRITE \
+      --network host
+    ```
+  </Step>
+  
+  <Step title="Save as Tar Archive">
+    Exports the image to a tar file (if `--podman-save` is set).
+    
+    ```bash
+    podman save -o my-app_latest.tar localhost/my-app:latest
+    ```
+  </Step>
+  
+  <Step title="Load into Cluster">
+    Imports the tar archive into the target cluster.
+    
+    **Kind:**
+    ```bash
+    kind load image-archive my-app_latest.tar
+    ```
+    
+    **Kubeadm:**
+    ```bash
+    ctr -n k8s.io images import my-app_latest.tar
+    ```
+    
+    **K3s:**
+    ```bash
+    k3s ctr images import my-app_latest.tar
+    ```
+  </Step>
+</Steps>
+
+## Cluster-Specific Image Management
+
+### Kind Cluster
+
+Kind uses Docker as the container runtime:
+
+```bash
+# Load image
+underpost image --build --kind --image-name my-app:latest
+
+# List images
+underpost image --ls --kind
+
+# Remove image
+underpost image --rm my-app:latest --kind
+```
+
+Images are loaded into both `kind-control-plane` and `kind-worker` nodes.
+
+### Kubeadm Cluster
+
+Kubeadm uses containerd with ctr:
+
+```bash
+# Build and load
+underpost image --build --kubeadm \
+  --image-name my-app:latest \
+  --podman-save
+
+# List images
+underpost image --ls --kubeadm
+
+# Remove image
+underpost image --rm my-app:latest --kubeadm
+```
+
+Uses the `k8s.io` namespace in containerd.
+
+### K3s Cluster
+
+K3s uses its own ctr command:
+
+```bash
+# Build and load
+underpost image --build --k3s \
+  --image-name my-app:latest \
+  --podman-save
+
+# List images
+underpost image --ls --k3s
+
+# Remove image
+underpost image --rm my-app:latest --k3s
+```
+
+## Base Image Workflow
+
+The `--pull-base` option creates the standard Underpost runtime image:
+
+```bash
+underpost image --pull-base --kind
+```
+
+This workflow:
+1. Pulls `rockylinux:9` from Docker Hub
+2. Builds the `rockylinux9-underpost` image with Underpost dependencies
+3. Saves the image as a tar archive
+4. Loads it into the specified cluster type
+
+The resulting image includes:
+- Rocky Linux 9 base
+- Node.js and npm
+- Underpost framework
+- Common development tools
+
+## Listing Images
+
+### List Cluster Images
+
+```bash
+underpost image --ls --kind
+```
+
+Outputs a table with:
+- IMAGE
+- TAG
+- IMAGE ID
+- SIZE
+
+### List Pod Images
+
+```bash
+underpost image --spec --namespace default
+```
+
+Shows which images are actually being used by running pods:
+```
+pod: default/my-app-blue-xxx
+image: localhost/rockylinux9-underpost:v2.85.0
+```
+
+## Docker Hub Integration
+
+Pull images directly from Docker Hub:
+
+```bash
+# Pull official images
+underpost image --pull-dockerhub nginx:latest --kind
+underpost image --pull-dockerhub redis:alpine --kubeadm
+
+# Pull Underpost images
+underpost image --pull-dockerhub underpost --kind
+```
+
+The special `underpost` shorthand pulls `underpost/underpost-engine` with the current framework version.
+
+## Image Removal
+
+Remove images from cluster nodes:
+
+```bash
+# Remove from Kind
+underpost image --rm localhost/my-app:old --kind
+
+# Remove from Kubeadm
+underpost image --rm my-app:v1.0.0 --kubeadm
+
+# Remove from K3s
+underpost image --rm old-image:latest --k3s
+```
+
+**Kind** removes from both control-plane and worker nodes.
+**Kubeadm/K3s** removes from the specified node or current host.
+
+## Development Mode
+
+```bash
+underpost image --build --dev \
+  --image-name dev-app:latest \
+  --path . \
+  --kind
+```
+
+Development mode uses local paths instead of global npm installation paths.
+
+## Image Naming
+
+Images are prefixed with `localhost/` when using Podman:
+
+```bash
+# You specify: my-app:v1.0.0
+# Podman creates: localhost/my-app:v1.0.0
+```
+
+If no tag is provided, `:latest` is used by default.
+
+## Related Commands
+
+- [`underpost cluster`](/cli/commands/cluster) - Initialize clusters that will use these images
+- [`underpost deploy`](/cli/commands/deploy) - Deploy applications using custom images
+- [`underpost new`](/cli/commands/new) - Create new projects with Dockerfiles

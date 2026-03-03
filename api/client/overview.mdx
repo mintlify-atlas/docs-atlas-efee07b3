@@ -1,0 +1,144 @@
+---
+title: Client Components Overview
+description: Core client-side components and utilities for building Underpost applications
+---
+
+## Introduction
+
+The Underpost client framework provides a comprehensive set of components organized into three main categories:
+
+- **Core Components** - Foundation modules for DOM manipulation, routing, modals, and authentication
+- **UI Components** - Reusable interface elements like buttons, inputs, dropdowns, and grids
+- **Services** - Utility services for translation, logging, and validation
+
+All components are built with vanilla JavaScript and designed to work together seamlessly.
+
+## Component Architecture
+
+Components in Underpost follow a consistent pattern:
+
+```javascript
+import { ComponentName } from './client/components/core/ComponentName.js';
+
+// Most components expose a Render method or utility functions
+const html = await ComponentName.Render(options);
+```
+
+## Core Component Categories
+
+### Foundation
+
+<CardGroup cols={2}>
+  <Card title="CommonJs" icon="code" href="/api/client/core-components#commonjs">
+    Utility functions for data manipulation, ID generation, and common operations
+  </Card>
+  <Card title="VanillaJs" icon="html5" href="/api/client/core-components#vanillajs">
+    DOM manipulation utilities and query selectors
+  </Card>
+</CardGroup>
+
+### Application Structure
+
+<CardGroup cols={2}>
+  <Card title="Router" icon="route" href="/api/client/core-components#router">
+    Client-side routing with history management and query parameters
+  </Card>
+  <Card title="Modal" icon="window" href="/api/client/core-components#modal">
+    Modal dialog system with slide menus and view modes
+  </Card>
+  <Card title="Auth" icon="shield" href="/api/client/core-components#auth">
+    Authentication state management and session control
+  </Card>
+  <Card title="SocketIo" icon="satellite-dish" href="/api/client/core-components#socketio">
+    WebSocket client for real-time communication
+  </Card>
+</CardGroup>
+
+## UI Components
+
+<CardGroup cols={2}>
+  <Card title="Input" icon="keyboard" href="/api/client/ui-components#input">
+    Form inputs with validation and file handling
+  </Card>
+  <Card title="BtnIcon" icon="circle-dot" href="/api/client/ui-components#btnicon">
+    Customizable icon buttons with tooltips
+  </Card>
+  <Card title="ToggleSwitch" icon="toggle-on" href="/api/client/ui-components#toggleswitch">
+    Toggle switches and checkboxes
+  </Card>
+  <Card title="DropDown" icon="caret-down" href="/api/client/ui-components#dropdown">
+    Dropdown menus with search and multi-select
+  </Card>
+  <Card title="AgGrid" icon="table" href="/api/client/ui-components#aggrid">
+    Data grids powered by AG Grid
+  </Card>
+</CardGroup>
+
+## Services
+
+<CardGroup cols={2}>
+  <Card title="Translate" icon="language" href="/api/client/services#translate">
+    Multi-language translation service
+  </Card>
+  <Card title="Logger" icon="terminal" href="/api/client/services#logger">
+    Development logging with module tracking
+  </Card>
+  <Card title="Validator" icon="check-circle" href="/api/client/services#validator">
+    Form validation with real-time feedback
+  </Card>
+</CardGroup>
+
+## Usage Example
+
+Here's a complete example combining multiple components:
+
+```javascript
+import { Modal } from './Modal.js';
+import { Input } from './Input.js';
+import { BtnIcon } from './BtnIcon.js';
+import { Validator } from './Validator.js';
+import { Translate } from './Translate.js';
+
+// Render a modal with form inputs
+await Modal.Render({
+  id: 'user-form',
+  title: 'User Information',
+  html: async () => html`
+    ${await Input.Render({
+      id: 'username-input',
+      type: 'text',
+      placeholder: Translate.Render('username'),
+      label: Translate.Render('username')
+    })}
+    ${await BtnIcon.Render({
+      label: html`<i class="fas fa-save"></i> ${Translate.Render('save')}`,
+      class: 'btn-submit'
+    })}
+  `
+});
+
+// Set up validation
+const validate = Validator.instance([
+  {
+    id: 'username-input',
+    rules: [
+      { type: 'isEmpty' },
+      { type: 'isLength', options: { min: 2, max: 20 } }
+    ]
+  }
+]);
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Core Components" icon="cube" href="/api/client/core-components">
+    Explore foundation components in detail
+  </Card>
+  <Card title="UI Components" icon="palette" href="/api/client/ui-components">
+    Learn about interface elements
+  </Card>
+  <Card title="Services" icon="gear" href="/api/client/services">
+    Discover utility services
+  </Card>
+</CardGroup>

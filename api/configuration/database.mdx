@@ -1,0 +1,420 @@
+---
+title: 'Database Configuration'
+description: 'Complete API reference for Underpost database configuration and providers'
+---
+
+## Overview
+
+Underpost supports multiple database providers through a unified configuration interface. Database connections are configured per server host and path in the server configuration.
+
+## Database Configuration
+
+<ParamField path="db" type="object" required>
+  Database connection configuration for a server endpoint.
+  
+  Specified in server configuration at `server[host][path].db`.
+</ParamField>
+
+<ParamField path="db.provider" type="string" required>
+  Database provider type to use.
+  
+  **Supported Providers:**
+  - `"mongoose"` - MongoDB via Mongoose ODM
+  - `"mariadb"` - MariaDB/MySQL (experimental)
+  
+  **Example:** `"mongoose"`
+</ParamField>
+
+<ParamField path="db.host" type="string" required>
+  Database connection URI or hostname.
+  
+  Format varies by provider:
+  - **Mongoose:** Full MongoDB connection URI
+  - **MariaDB:** Hostname or IP address
+  
+  **Example (Mongoose):** `"mongodb://127.0.0.1:27017"`
+  
+  **Example (MariaDB):** `"127.0.0.1"`
+</ParamField>
+
+<ParamField path="db.name" type="string" required>
+  Database name to connect to.
+  
+  **Example:** `"default"`
+</ParamField>
+
+## Configuration Example
+
+```javascript
+server: {
+  'default.net': {
+    '/': {
+      // ... other server config
+      db: {
+        provider: 'mongoose',
+        host: 'mongodb://127.0.0.1:27017',
+        name: 'default'
+      }
+    }
+  }
+}
+```
+
+## Mongoose Provider (MongoDB)
+
+The Mongoose provider connects to MongoDB databases and dynamically loads models based on configured APIs.
+
+### Connection Configuration
+
+<ParamField path="db.provider" type="string" required>
+  Set to `"mongoose"` for MongoDB connections.
+</ParamField>
+
+<ParamField path="db.host" type="string" required>
+  MongoDB connection URI.
+  
+  **Format:** `mongodb://[username:password@]host[:port]`
+  
+  **Examples:**
+  - Local: `"mongodb://127.0.0.1:27017"`
+  - Authenticated: `"mongodb://user:pass@localhost:27017"`
+  - Remote: `"mongodb://db.example.com:27017"`
+  - Replica Set: `"mongodb://host1:27017,host2:27017,host3:27017"`
+</ParamField>
+
+<ParamField path="db.name" type="string" required>
+  MongoDB database name.
+  
+  **Example:** `"myapp_production"`
+</ParamField>
+
+### Connection Options
+
+The Mongoose provider uses the following default connection options:
+
+```javascript
+{
+  serverSelectionTimeoutMS: 5000
+}
+```
+
+### Model Loading
+
+Models are automatically loaded based on the `apis` array configured for the server endpoint:
+
+```javascript
+server: {
+  'api.example.com': {
+    '/': {
+      apis: ['user', 'post', 'comment'],  // These API models will be loaded
+      db: {
+        provider: 'mongoose',
+        host: 'mongodb://127.0.0.1:27017',
+        name: 'blog'
+      }
+    }
+  }
+}
+```
+
+For each API in the `apis` array, Underpost will:
+1. Import the model schema from `src/api/{api}/{api}.model.js`
+2. Create a Mongoose model with capitalized name
+3. Bind the model to the database connection
+
+### Connection Instance
+
+Access the Mongoose connection in your API controllers:
+
+```javascript
+// In src/api/user/user.controller.js
+const db = req.db.mongoose;
+const User = db.models.User;
+
+const users = await User.find({});
+```
+
+### Example: Complete Mongoose Setup
+
+```javascript
+// conf.js
+server: {
+  'api.myapp.com': {
+    '/': {
+      client: null,
+      runtime: 'nodejs',
+      apis: ['user', 'post', 'comment'],
+      db: {
+        provider: 'mongoose',
+        host: 'mongodb://127.0.0.1:27017',
+        name: 'myapp_production'
+      }
+    }
+  }
+}
+```
+
+```javascript
+// src/api/user/user.model.js
+import mongoose from 'mongoose';
+
+const ProviderSchema = new mongoose.Schema({
+  username: { type: String, required: true, unique: true },
+  email: { type: String, required: true, unique: true },
+  createdAt: { type: Date, default: Date.now }
+});
+
+export { ProviderSchema };
+```
+
+```javascript
+// src/api/user/user.controller.js
+const UserController = {
+  async getAll(req, res) {
+    const db = req.db.mongoose;
+    const User = db.models.User;
+    
+    const users = await User.find({});
+    res.json(users);
+  }
+};
+
+export { UserController };
+```
+
+## MariaDB Provider (Experimental)
+
+The MariaDB provider supports MySQL and MariaDB databases using connection pooling.
+
+<Note>
+  The MariaDB provider is experimental and not fully integrated with the configuration system. Use for custom queries.
+</Note>
+
+### Direct Query Usage
+
+```javascript
+import { MariaDB } from './src/db/mariadb/MariaDB.js';
+
+const result = await MariaDB.query({
+  host: '127.0.0.1',
+  port: 3306,
+  user: 'root',
+  password: 'password',
+  query: 'SELECT * FROM users WHERE active = 1'
+});
+```
+
+### Query Options
+
+<ParamField path="host" type="string">
+  MariaDB server hostname.
+  
+  **Default:** `"127.0.0.1"`
+</ParamField>
+
+<ParamField path="port" type="number">
+  MariaDB server port.
+  
+  **Default:** `3306`
+</ParamField>
+
+<ParamField path="user" type="string">
+  Database user.
+  
+  **Default:** `"root"`
+</ParamField>
+
+<ParamField path="password" type="string">
+  Database password.
+  
+  **Default:** `""`
+</ParamField>
+
+<ParamField path="query" type="string" required>
+  SQL query to execute.
+  
+  **Example:** `"SELECT * FROM users"`
+</ParamField>
+
+## DataBaseProvider Service
+
+The `DataBaseProvider` service manages database connections across your application.
+
+### Loading a Connection
+
+```javascript
+import { DataBaseProvider } from './src/db/DataBaseProvider.js';
+
+const db = await DataBaseProvider.load({
+  apis: ['user', 'post'],
+  host: 'api.example.com',
+  path: '/',
+  db: {
+    provider: 'mongoose',
+    host: 'mongodb://127.0.0.1:27017',
+    name: 'myapp'
+  }
+});
+
+// Access models
+const User = db.models.User;
+const Post = db.models.Post;
+```
+
+### Load Options
+
+<ParamField path="apis" type="string[]" required>
+  Array of API names whose models should be loaded.
+  
+  **Example:** `["user", "post", "comment"]`
+</ParamField>
+
+<ParamField path="host" type="string" required>
+  Server host for connection caching.
+  
+  **Example:** `"api.example.com"`
+</ParamField>
+
+<ParamField path="path" type="string" required>
+  Server path for connection caching.
+  
+  **Example:** `"/"`
+</ParamField>
+
+<ParamField path="db" type="object" required>
+  Database configuration object (see above).
+</ParamField>
+
+### Connection Caching
+
+Connections are cached by `host` + `path` key. Subsequent calls with the same key return the cached connection:
+
+```javascript
+// First call - creates connection
+const db1 = await DataBaseProvider.load({
+  host: 'api.example.com',
+  path: '/',
+  db: { /* ... */ }
+});
+
+// Second call - returns cached connection
+const db2 = await DataBaseProvider.load({
+  host: 'api.example.com',
+  path: '/',
+  db: { /* ... */ }
+});
+
+// db1 === db2 (same connection instance)
+```
+
+### Closing Connections
+
+```javascript
+const db = await DataBaseProvider.load({ /* ... */ });
+
+// Close the connection when done
+await db.close();
+```
+
+## Environment Variables
+
+Database credentials can be externalized using environment variables:
+
+```bash
+# .env
+MONGO_HOST=mongodb://127.0.0.1:27017
+MONGO_DB_NAME=production_db
+```
+
+```javascript
+// conf.js
+server: {
+  'api.example.com': {
+    '/': {
+      db: {
+        provider: 'mongoose',
+        host: process.env.MONGO_HOST,
+        name: process.env.MONGO_DB_NAME
+      }
+    }
+  }
+}
+```
+
+## Connection Monitoring
+
+Monitor connection events:
+
+```javascript
+const db = await DataBaseProvider.load({ /* ... */ });
+
+db.connection.on('connected', () => {
+  console.log('Database connected');
+});
+
+db.connection.on('error', (err) => {
+  console.error('Database error:', err);
+});
+
+db.connection.on('disconnected', () => {
+  console.log('Database disconnected');
+});
+```
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Use Environment Variables for Credentials">
+    Never hardcode database credentials in configuration files. Always use environment variables:
+    
+    ```javascript
+    db: {
+      provider: 'mongoose',
+      host: process.env.MONGO_URI,
+      name: process.env.MONGO_DB
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Separate Databases by Environment">
+    Use different database names for development, staging, and production:
+    
+    ```javascript
+    db: {
+      provider: 'mongoose',
+      host: 'mongodb://127.0.0.1:27017',
+      name: `myapp_${process.env.NODE_ENV}`
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Handle Connection Errors">
+    Always implement error handling for database connections:
+    
+    ```javascript
+    try {
+      const db = await DataBaseProvider.load({ /* ... */ });
+    } catch (error) {
+      console.error('Failed to connect to database:', error);
+      process.exit(1);
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Close Connections on Shutdown">
+    Gracefully close database connections when your application shuts down:
+    
+    ```javascript
+    process.on('SIGTERM', async () => {
+      await db.close();
+      process.exit(0);
+    });
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Related
+
+- [Server Configuration](/api/configuration/server)
+- [API Development](/guides/api-development)
+- [Database Setup](/guides/database-setup)

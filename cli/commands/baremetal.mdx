@@ -1,0 +1,617 @@
+---
+title: underpost baremetal
+description: Provision and configure baremetal servers with network boot and automation
+---
+
+Manages baremetal server operations including PXE/iPXE provisioning, NFS root filesystem creation, MAAS control server setup, and cloud-init configuration.
+
+## Usage
+
+```bash
+underpost baremetal [workflow-id] [options]
+```
+
+## Arguments
+
+<ParamField path="workflow-id" type="string">
+  Identifier for the specific workflow configuration to use (e.g., "rpi4mb", "x86-server"). Defaults to "rpi4mbarm64-iso-ram".
+</ParamField>
+
+## Options
+
+### Network Configuration
+
+<ParamField path="--ip-address" type="string">
+  The IP address of the control server or the local machine.
+</ParamField>
+
+<ParamField path="--hostname" type="string">
+  The hostname of the target baremetal machine.
+</ParamField>
+
+<ParamField path="--ip-file-server" type="string">
+  The IP address of the file server (NFS/TFTP).
+</ParamField>
+
+<ParamField path="--ip-config" type="string">
+  IP configuration string for the baremetal machine (dhcp, dhcp6, auto6, none, off).
+</ParamField>
+
+<ParamField path="--netmask" type="string">
+  Netmask of network.
+</ParamField>
+
+<ParamField path="--dns-server" type="string">
+  DNS server IP address.
+</ParamField>
+
+<ParamField path="--mac" type="string">
+  Specifies the MAC address for baremetal machine operations. Use "random" for random MAC, "hardware" to use device's actual MAC (no spoofing), or specify a MAC address.
+</ParamField>
+
+### Control Server
+
+<ParamField path="--control-server-install" type="boolean">
+  Installs the baremetal control server (MAAS).
+</ParamField>
+
+<ParamField path="--control-server-uninstall" type="boolean">
+  Uninstalls the baremetal control server.
+</ParamField>
+
+<ParamField path="--control-server-restart" type="boolean">
+  Restarts the baremetal control server.
+</ParamField>
+
+<ParamField path="--control-server-db-install" type="boolean">
+  Installs up the database for the baremetal control server.
+</ParamField>
+
+<ParamField path="--control-server-db-uninstall" type="boolean">
+  Uninstalls the database for the baremetal control server.
+</ParamField>
+
+### Machine Management
+
+<ParamField path="--create-machine" type="boolean">
+  Creates a new baremetal machine entry in the database.
+</ParamField>
+
+<ParamField path="--remove-machines" type="string">
+  Comma-separated list of machine system IDs or 'all' to remove existing machines from MAAS.
+</ParamField>
+
+<ParamField path="--clear-discovered" type="boolean">
+  Clears all discovered baremetal machines from the database.
+</ParamField>
+
+<ParamField path="--ls" type="boolean">
+  Lists available boot resources and machines.
+</ParamField>
+
+### Boot Configuration
+
+<ParamField path="--ipxe" type="boolean">
+  Chainloads iPXE to normalize identity before commissioning.
+</ParamField>
+
+<ParamField path="--ipxe-rebuild" type="boolean">
+  Forces rebuild of iPXE binary with embedded boot script.
+</ParamField>
+
+<ParamField path="--ipxe-build-iso" type="string">
+  Builds a standalone iPXE ISO with embedded script for the specified workflow ID.
+</ParamField>
+
+<ParamField path="--commission" type="boolean">
+  Init workflow for commissioning a physical machine.
+</ParamField>
+
+<ParamField path="--iso-url" type="string">
+  Uses a custom ISO URL for baremetal machine commissioning.
+</ParamField>
+
+### NFS Root Filesystem
+
+<ParamField path="--nfs-build" type="boolean">
+  Builds an NFS root filesystem for a workflow id config architecture using QEMU emulation.
+</ParamField>
+
+<ParamField path="--nfs-mount" type="boolean">
+  Mounts the NFS root filesystem for a workflow id config architecture.
+</ParamField>
+
+<ParamField path="--nfs-unmount" type="boolean">
+  Unmounts the NFS root filesystem for a workflow id config architecture.
+</ParamField>
+
+<ParamField path="--nfs-reset" type="boolean">
+  Resets the NFS server completely, closing all connections before reloading exports.
+</ParamField>
+
+<ParamField path="--nfs-build-server" type="boolean">
+  Builds the NFS server for a workflow id config architecture.
+</ParamField>
+
+<ParamField path="--nfs-sh" type="boolean">
+  Copies QEMU emulation root entrypoint shell command to the clipboard.
+</ParamField>
+
+### Cloud-Init
+
+<ParamField path="--cloud-init" type="boolean">
+  Sets the kernel parameters and sets the necessary seed users on the HTTP server.
+</ParamField>
+
+<ParamField path="--cloud-init-update" type="boolean">
+  Updates cloud init for a workflow id config architecture.
+</ParamField>
+
+<ParamField path="--bootcmd" type="string">
+  Comma-separated list of boot commands to execute.
+</ParamField>
+
+<ParamField path="--runcmd" type="string">
+  Comma-separated list of run commands to execute.
+</ParamField>
+
+### Provisioning Tools
+
+<ParamField path="--ubuntu-tools-build" type="boolean">
+  Builds ubuntu tools for chroot environment.
+</ParamField>
+
+<ParamField path="--ubuntu-tools-test" type="boolean">
+  Tests ubuntu tools in chroot environment.
+</ParamField>
+
+<ParamField path="--rocky-tools-build" type="boolean">
+  Builds rocky linux tools for chroot environment.
+</ParamField>
+
+<ParamField path="--rocky-tools-test" type="boolean">
+  Tests rocky linux tools in chroot environment.
+</ParamField>
+
+### Bootstrap HTTP Server
+
+<ParamField path="--bootstrap-http-server-run" type="boolean">
+  Runs a temporary bootstrap HTTP server for generic purposes such as serving iPXE scripts or ISO images during commissioning.
+</ParamField>
+
+<ParamField path="--bootstrap-http-server-path" type="string">
+  Sets a custom bootstrap HTTP server path for baremetal commissioning.
+</ParamField>
+
+<ParamField path="--bootstrap-http-server-port" type="number">
+  Sets a custom bootstrap HTTP server port for baremetal commissioning (default: 8888).
+</ParamField>
+
+### Packer Image Builder
+
+<ParamField path="--install-packer" type="boolean">
+  Installs Packer CLI.
+</ParamField>
+
+<ParamField path="--packer-maas-image-template" type="string">
+  Creates a new image folder from canonical/packer-maas template path (requires workflow-id).
+</ParamField>
+
+<ParamField path="--packer-workflow-id" type="string">
+  Specifies the workflow ID for Packer MAAS image operations.
+</ParamField>
+
+<ParamField path="--packer-maas-image-build" type="boolean">
+  Builds a MAAS image using Packer for the workflow specified by --packer-workflow-id.
+</ParamField>
+
+<ParamField path="--packer-maas-image-upload" type="boolean">
+  Uploads an existing MAAS image artifact without rebuilding for the workflow specified by --packer-workflow-id.
+</ParamField>
+
+<ParamField path="--packer-maas-image-cached" type="boolean">
+  Continue last build without removing artifacts (used with --packer-maas-image-build).
+</ParamField>
+
+### Logging
+
+<ParamField path="--logs" type="string">
+  Displays logs for log id: dhcp, dhcp-lease, dhcp-lan, cloud-init, cloud-init-machine, cloud-init-config.
+</ParamField>
+
+### Development
+
+<ParamField path="--dev" type="boolean">
+  Sets the development context environment for baremetal operations.
+</ParamField>
+
+## Examples
+
+### Install MAAS Control Server
+
+```bash
+underpost baremetal --control-server-install
+```
+
+Installs and configures MAAS (Metal as a Service) for baremetal provisioning.
+
+### Setup Control Server Database
+
+```bash
+underpost baremetal --control-server-db-install
+```
+
+Deploys PostgreSQL and initializes the MAAS database.
+
+### Build NFS Root Filesystem
+
+```bash
+underpost baremetal rpi4mb \
+  --nfs-build \
+  --hostname rpi-node-01 \
+  --ip-address 192.168.1.100
+```
+
+Creates an NFS root filesystem using debootstrap or container extraction.
+
+### Commission a Machine
+
+```bash
+underpost baremetal rpi4mb \
+  --commission \
+  --create-machine \
+  --hostname rpi-node-01 \
+  --ip-address 192.168.1.100 \
+  --mac "b8:27:eb:12:34:56" \
+  --cloud-init
+```
+
+Complete commissioning workflow with PXE boot and cloud-init.
+
+### Commission with iPXE
+
+```bash
+underpost baremetal x86-server \
+  --commission \
+  --ipxe \
+  --create-machine \
+  --hostname server-01 \
+  --ip-address 192.168.1.50
+```
+
+Uses iPXE for flexible network booting.
+
+### Build iPXE ISO
+
+```bash
+underpost baremetal rpi4mb \
+  --ipxe-build-iso ./boot.iso \
+  --hostname rpi-node-01 \
+  --ip-address 192.168.1.100
+```
+
+Creates a bootable ISO with embedded iPXE script.
+
+### List Machines and Resources
+
+```bash
+underpost baremetal --ls
+```
+
+Displays available MAAS boot resources and registered machines.
+
+### View DHCP Logs
+
+```bash
+underpost baremetal --logs dhcp
+```
+
+Monitors DHCP server logs in real-time.
+
+### View Cloud-Init Logs
+
+```bash
+underpost baremetal rpi4mb \
+  --logs cloud-init-machine \
+  --hostname rpi-node-01
+```
+
+Tails cloud-init output logs from the NFS root.
+
+### Build Ubuntu Provisioning Tools
+
+```bash
+underpost baremetal ubuntu-node \
+  --nfs-build \
+  --ubuntu-tools-build \
+  --hostname ubuntu-01
+```
+
+Builds chroot environment with Ubuntu-specific tools and configurations.
+
+### Build Rocky Linux Tools
+
+```bash
+underpost baremetal rocky-server \
+  --nfs-build \
+  --rocky-tools-build \
+  --hostname rocky-01
+```
+
+Builds chroot environment with Rocky Linux packages and configurations.
+
+### Access NFS Shell
+
+```bash
+underpost baremetal rpi4mb \
+  --nfs-sh \
+  --hostname rpi-node-01
+```
+
+Copies the chroot command to clipboard for shell access to NFS root.
+
+### Remove Machines
+
+```bash
+underpost baremetal --remove-machines "abc123,def456"
+```
+
+Removes specific machines by system ID.
+
+### Clear All Discovered Machines
+
+```bash
+underpost baremetal --clear-discovered
+```
+
+Clears all auto-discovered machines from MAAS.
+
+## Commissioning Workflow
+
+<Steps>
+  <Step title="Install Control Server">
+    Set up MAAS control server and database.
+    
+    ```bash
+    underpost baremetal --control-server-install
+    underpost baremetal --control-server-db-install
+    ```
+  </Step>
+  
+  <Step title="Build NFS Root Filesystem">
+    Create the root filesystem for network booting.
+    
+    ```bash
+    underpost baremetal rpi4mb \
+      --nfs-build \
+      --hostname node-01
+    ```
+    
+    This performs a two-stage debootstrap or container extraction with QEMU cross-architecture support.
+  </Step>
+  
+  <Step title="Build Provisioning Tools">
+    Install system tools and configurations.
+    
+    ```bash
+    underpost baremetal rpi4mb \
+      --ubuntu-tools-build \
+      --hostname node-01
+    ```
+    
+    Configures timezone, keyboard, SSH keys, and user accounts.
+  </Step>
+  
+  <Step title="Create Machine Entry">
+    Register the machine in MAAS.
+    
+    ```bash
+    underpost baremetal rpi4mb \
+      --create-machine \
+      --hostname node-01 \
+      --ip-address 192.168.1.100 \
+      --mac "aa:bb:cc:dd:ee:ff"
+    ```
+  </Step>
+  
+  <Step title="Commission">
+    Start the commissioning process.
+    
+    ```bash
+    underpost baremetal rpi4mb \
+      --commission \
+      --cloud-init \
+      --hostname node-01
+    ```
+    
+    This configures PXE/iPXE boot, TFTP, NFS exports, and cloud-init.
+  </Step>
+  
+  <Step title="Power On">
+    Boot the baremetal machine. It will:
+    - PXE boot from TFTP server
+    - Load kernel and initrd
+    - Mount NFS root filesystem
+    - Execute cloud-init configuration
+    - Report status to MAAS
+  </Step>
+</Steps>
+
+## NFS Root Filesystem
+
+The NFS root filesystem provides a complete Linux environment that boots over the network.
+
+### Build Process
+
+```bash
+underpost baremetal rpi4mb --nfs-build --hostname node-01
+```
+
+**Debootstrap Method:**
+1. Creates directory at `/nfs/exports/node-01`
+2. Runs first-stage debootstrap
+3. Copies QEMU static binary for cross-arch
+4. Mounts proc, sys, dev filesystems
+5. Runs second-stage debootstrap in chroot
+
+**Container Method:**
+1. Pulls container image with Podman
+2. Exports container filesystem to NFS path
+3. Installs additional packages (kernel, dracut, nfs-utils)
+4. Builds initramfs with NFS support
+
+### Mount/Unmount
+
+```bash
+# Mount NFS filesystems
+underpost baremetal rpi4mb --nfs-mount --hostname node-01
+
+# Unmount
+underpost baremetal rpi4mb --nfs-unmount --hostname node-01
+```
+
+### Shell Access
+
+```bash
+underpost baremetal rpi4mb --nfs-sh --hostname node-01
+```
+
+Copies the appropriate chroot command (with QEMU if cross-arch):
+```bash
+sudo chroot /nfs/exports/node-01 /usr/bin/qemu-aarch64-static /bin/bash
+```
+
+## iPXE Boot
+
+iPXE provides advanced network booting capabilities:
+
+### Generate iPXE EFI Binary
+
+```bash
+underpost baremetal rpi4mb \
+  --commission \
+  --ipxe \
+  --hostname node-01
+```
+
+Builds iPXE with embedded boot script that:
+- Performs DHCP
+- Chains to main iPXE script on TFTP server
+- Loads kernel with custom parameters
+
+### Create iPXE ISO
+
+```bash
+underpost baremetal rpi4mb \
+  --ipxe-build-iso ./node-01-boot.iso \
+  --hostname node-01 \
+  --ip-address 192.168.1.100
+```
+
+Creates a bootable ISO for USB/CD booting that chains to network boot.
+
+### Rebuild iPXE
+
+```bash
+underpost baremetal rpi4mb \
+  --commission \
+  --ipxe \
+  --ipxe-rebuild \
+  --hostname node-01
+```
+
+Forces a fresh build of the iPXE binary with updated embedded script.
+
+## Cloud-Init Configuration
+
+Cloud-init automates initial system configuration:
+
+```bash
+underpost baremetal rpi4mb \
+  --commission \
+  --cloud-init \
+  --bootcmd "echo 'Boot started'" \
+  --runcmd "curl -fsSL https://get.docker.com | sh" \
+  --hostname node-01
+```
+
+Cloud-init configuration includes:
+- Hostname and network setup
+- User creation and SSH keys
+- Package installation
+- Custom boot and run commands
+- Timezone and locale
+- MAAS registration scripts
+
+## Packer MAAS Images
+
+Packer automates custom MAAS image creation:
+
+### Install Packer
+
+```bash
+underpost baremetal --install-packer
+```
+
+### Extract Template
+
+```bash
+underpost baremetal \
+  --packer-maas-image-template ubuntu-minimal \
+  --packer-workflow-id my-custom-ubuntu
+```
+
+Extracts template from canonical/packer-maas repository.
+
+### Build Image
+
+```bash
+underpost baremetal \
+  --packer-workflow-id my-custom-ubuntu \
+  --packer-maas-image-build
+```
+
+Builds the custom image with QEMU and uploads to MAAS.
+
+### Upload Existing Artifact
+
+```bash
+underpost baremetal \
+  --packer-workflow-id my-custom-ubuntu \
+  --packer-maas-image-upload
+```
+
+Uploads a previously built image without rebuilding.
+
+## Workflow Configuration
+
+Workflows are defined in `engine/baremetal/workflows.json`:
+
+```json
+{
+  "rpi4mb": {
+    "type": "chroot-debootstrap",
+    "architecture": "arm64/generic",
+    "tftpPrefix": "rpi4mb",
+    "debootstrap": {
+      "image": {
+        "architecture": "arm64",
+        "name": "noble"
+      }
+    },
+    "firmwares": [...],
+    "maas": {
+      "commissioning": {
+        "architecture": "arm64/generic",
+        "name": "ubuntu/noble"
+      }
+    }
+  }
+}
+```
+
+## Related Commands
+
+- [`underpost cluster`](/cli/commands/cluster) - Kubernetes cluster management
+- [`underpost image`](/cli/commands/image) - Container image operations
+- [`underpost deploy`](/cli/commands/deploy) - Application deployment

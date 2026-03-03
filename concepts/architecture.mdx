@@ -1,0 +1,151 @@
+---
+title: Framework Architecture
+description: Understanding the Underpost framework architecture and its core components
+---
+
+Underpost is a full-stack framework designed for building Progressive Web Applications (PWA) with server-side rendering (SSR) capabilities. The framework follows a modular architecture that separates concerns between client, server, and deployment configuration.
+
+## Core Architecture
+
+The framework is organized into three main layers:
+
+### Client Layer
+
+The client layer handles all browser-side functionality:
+
+- **Components**: Modular UI components organized into `core` and custom component sets
+- **Services**: Client-side API service wrappers
+- **SSR Rendering**: Server-side rendering templates and utilities
+- **Public Assets**: Static files and PWA assets
+
+### Server Layer
+
+The server layer manages backend operations:
+
+- **API Routes**: RESTful API endpoints organized by domain
+- **WebSocket Handlers**: Real-time communication via Socket.IO
+- **Database Providers**: Support for MongoDB (Mongoose) and other providers
+- **Caching**: Valkey/Redis integration for performance
+
+### Configuration Layer
+
+The configuration layer defines how applications are deployed:
+
+- **Client Configuration**: Component loading, views, and dependencies
+- **Server Configuration**: Host mapping, runtime settings, and service selection
+- **SSR Configuration**: Rendering pipeline and template selection
+- **Cron Configuration**: Scheduled jobs and DNS management
+
+## Application Structure
+
+```
+src/
+├── api/              # Backend API modules
+├── client/           # Frontend application code
+│   ├── components/   # UI components (core + custom)
+│   ├── services/     # API client services
+│   ├── ssr/          # SSR templates
+│   └── public/       # Static assets
+├── server/           # Server utilities
+└── ws/               # WebSocket handlers
+```
+
+## Component Loading
+
+Components are loaded dynamically based on configuration. The framework supports two categories:
+
+<CodeGroup>
+```javascript Core Components
+import { Css } from './components/core/Css.js';
+import { Responsive } from './components/core/Responsive.js';
+import { Router } from './components/core/Router.js';
+import { Modal } from './components/core/Modal.js';
+import { SocketIo } from './components/core/SocketIo.js';
+```
+
+```javascript Custom Components
+import { MenuDefault } from './components/default/MenuDefault.js';
+import { RouterDefault } from './components/default/RoutesDefault.js';
+import { LogInDefault } from './components/default/LogInDefault.js';
+```
+</CodeGroup>
+
+## Initialization Flow
+
+The application initializes through a structured sequence:
+
+```javascript
+window.onload = () =>
+  Worker.instance({
+    router: RouterDefault,
+    render: async () => {
+      await Css.loadThemes([CssDefaultLight, CssDefaultDark]);
+      await TranslateCore.Init();
+      await TranslateDefault.Init();
+      await Responsive.Init();
+      await MenuDefault.Render({ htmlMainBody });
+      await SocketIo.Init({
+        channels: ElementsDefault.Data,
+        path: `/`,
+      });
+      await SocketIoDefault.Init();
+      await LogInDefault();
+      await LogOutDefault();
+      await SignUpDefault();
+      await Keyboard.Init();
+      await Modal.RenderSeoSanitizer();
+    },
+  });
+```
+
+<Note>
+Each initialization step is asynchronous, ensuring proper dependency loading before the next step executes.
+</Note>
+
+## Multi-Tenant Architecture
+
+Underpost supports multi-tenant deployments through deployment IDs:
+
+- Each deployment has its own configuration folder
+- Configurations can be cloned and customized
+- Single replica mode for horizontal scaling
+- Proxy routing for multi-host setups
+
+## Build System
+
+The framework includes a sophisticated build system:
+
+- **Client Builds**: Bundles JavaScript, CSS, and assets
+- **Server Builds**: Prepares Node.js runtime environment
+- **Proxy Builds**: Configures reverse proxy routing
+- **Replica Builds**: Creates isolated deployment instances
+
+<Warning>
+The framework requires Node.js v24.x. Other versions may cause compatibility issues.
+</Warning>
+
+## Runtime Environments
+
+The framework supports multiple runtime contexts:
+
+- **Development**: Local development with hot reloading
+- **Production**: Optimized builds with minification
+- **Test**: Isolated testing environment
+- **Proxy**: Reverse proxy configuration mode
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Configuration System" icon="sliders" href="/concepts/configuration">
+    Learn how to configure your application
+  </Card>
+  <Card title="Component System" icon="puzzle-piece" href="/concepts/components">
+    Understand the component architecture
+  </Card>
+  <Card title="Routing" icon="route" href="/concepts/routing">
+    Explore the routing and view system
+  </Card>
+  <Card title="Getting Started" icon="rocket" href="/quickstart">
+    Build your first application
+  </Card>
+</CardGroup>

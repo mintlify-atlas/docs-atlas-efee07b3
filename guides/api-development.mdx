@@ -1,0 +1,392 @@
+---
+title: 'Creating REST APIs'
+description: 'Build robust REST APIs with routing, controllers, and services in Underpost'
+icon: 'code'
+---
+
+## Overview
+
+Underpost follows an MVC architecture for API development, with separate layers for routing, controllers, services, and models. Each API module is organized in a consistent structure.
+
+## API Module Structure
+
+Every API module contains these core files:
+
+```
+src/api/user/
+├── user.router.js      # Route definitions
+├── user.controller.js  # Request/response handlers
+├── user.service.js     # Business logic
+├── user.model.js       # Database schema
+└── user.build.js       # Build configuration
+```
+
+## Creating a Router
+
+Define your API endpoints using Express Router:
+
+```javascript user.router.js
+import express from 'express';
+import { UserController } from './user.controller.js';
+import { DataBaseProvider } from '../../db/DataBaseProvider.js';
+
+const UserRouter = (options) => {
+  const router = express.Router();
+  const authMiddleware = options.authMiddleware;
+
+  // Public endpoint - Create user
+  router.post(`/`, async (req, res) => {
+    /*
+      #swagger.tags = ['user']
+      #swagger.summary = 'Create user'
+      #swagger.description = 'This endpoint will create a new user account'
+    */
+    return await UserController.post(req, res, options);
+  });
+
+  // Protected endpoint - Get user by ID
+  router.get(`/:id`, authMiddleware, async (req, res) => {
+    /*
+      #swagger.tags = ['user']
+      #swagger.summary = 'Get user data by ID'
+      #swagger.security = [{ 'bearerAuth': [] }]
+    */
+    return await UserController.get(req, res, options);
+  });
+
+  // Protected endpoint - Update user
+  router.put(`/:id`, authMiddleware, async (req, res) => {
+    /*
+      #swagger.tags = ['user']
+      #swagger.summary = 'Update user data by ID'
+    */
+    return await UserController.put(req, res, options);
+  });
+
+  // Protected endpoint - Delete user
+  router.delete(`/:id`, authMiddleware, async (req, res) => {
+    /*
+      #swagger.tags = ['user']
+      #swagger.summary = 'Delete user data by ID'
+    */
+    return await UserController.delete(req, res, options);
+  });
+
+  return router;
+};
+
+export { UserRouter as ApiRouter };
+```
+
+<Steps>
+
+<Step title="Create Express Router">
+  Initialize an Express router instance
+</Step>
+
+<Step title="Define Endpoints">
+  Add route handlers for GET, POST, PUT, DELETE operations
+</Step>
+
+<Step title="Apply Middleware">
+  Use `authMiddleware` for protected routes requiring authentication
+</Step>
+
+<Step title="Add Swagger Docs">
+  Include swagger comments for automatic API documentation
+</Step>
+
+</Steps>
+
+## Building Controllers
+
+Controllers handle HTTP requests and responses:
+
+```javascript user.controller.js
+import { loggerFactory } from '../../server/logger.js';
+import { UserService } from './user.service.js';
+
+const logger = loggerFactory(import.meta);
+
+const handleRequest = (serviceMethod) => async (req, res, options) => {
+  try {
+    const result = await serviceMethod(req, res, options);
+    if (res.headersSent) {
+      return;
+    }
+    if (result instanceof Buffer) {
+      return res.status(200).end(result);
+    }
+    return res.status(200).json({
+      status: 'success',
+      data: result,
+    });
+  } catch (error) {
+    logger.error(error, error.stack);
+    return res.status(400).json({
+      status: 'error',
+      message: error.message,
+    });
+  }
+};
+
+const UserController = {
+  post: handleRequest(UserService.post),
+  get: handleRequest(UserService.get),
+  delete: handleRequest(UserService.delete),
+  put: handleRequest(UserService.put),
+};
+
+export { UserController };
+```
+
+<Note>
+  The `handleRequest` wrapper provides consistent error handling and response formatting across all endpoints.
+</Note>
+
+## Implementing Services
+
+Services contain your business logic and database operations:
+
+```javascript user.service.js
+import { DataBaseProvider } from '../../db/DataBaseProvider.js';
+import { createUserAndSession, refreshSessionAndToken } from '../../server/auth.js';
+import { UserDto } from './user.model.js';
+
+const UserService = {
+  // Create new user
+  post: async (req, res, options) => {
+    const { host, path } = options;
+    const User = DataBaseProvider.instance[`${host}${path}`].mongoose.models.User;
+    
+    const { id } = req.params;
+    
+    // Handle different POST operations
+    switch (id) {
+      case undefined:
+        // Create user and session
+        return await createUserAndSession(req, res, User, { host, path });
+        
+      case 'auth':
+        // Refresh authentication token
+        return await refreshSessionAndToken(req, res, User, { host, path });
+        
+      default:
+        throw new Error('Invalid endpoint');
+    }
+  },
+
+  // Get user data
+  get: async (req, res, options) => {
+    const { host, path } = options;
+    const User = DataBaseProvider.instance[`${host}${path}`].mongoose.models.User;
+    
+    const { id } = req.params;
+    
+    // Fetch user by ID
+    const user = await User.findOne({ _id: id })
+      .select(UserDto.select.get())
+      .lean();
+    
+    if (!user) {
+      throw new Error('User not found');
+    }
+    
+    return user;
+  },
+
+  // Update user data
+  put: async (req, res, options) => {
+    const { host, path } = options;
+    const User = DataBaseProvider.instance[`${host}${path}`].mongoose.models.User;
+    
+    const { id } = req.params;
+    const userId = req.auth.user._id;
+    
+    // Verify user owns the resource
+    if (id !== userId) {
+      throw new Error('Unauthorized');
+    }
+    
+    // Update user
+    const updated = await User.findByIdAndUpdate(
+      id,
+      { $set: req.body },
+      { new: true }
+    ).select(UserDto.select.get());
+    
+    return updated;
+  },
+
+  // Delete user
+  delete: async (req, res, options) => {
+    const { host, path } = options;
+    const User = DataBaseProvider.instance[`${host}${path}`].mongoose.models.User;
+    
+    const { id } = req.params;
+    const userId = req.auth.user._id;
+    
+    // Verify user owns the resource
+    if (id !== userId) {
+      throw new Error('Unauthorized');
+    }
+    
+    await User.findByIdAndDelete(id);
+    
+    return { deleted: true };
+  },
+};
+
+export { UserService };
+```
+
+## Registering APIs
+
+Register your API modules in the server configuration:
+
+```javascript conf.js
+server: {
+  'default.net': {
+    '/': {
+      client: 'default',
+      runtime: 'nodejs',
+      apis: ['default', 'core', 'user', 'test', 'file', 'document'],
+      origins: [],
+      proxy: [80, 443],
+    }
+  }
+}
+```
+
+<CodeGroup>
+
+```javascript Multiple APIs
+apis: ['user', 'product', 'order', 'payment']
+```
+
+```javascript Single API
+apis: ['user']
+```
+
+</CodeGroup>
+
+## Authentication Middleware
+
+Protect routes with JWT authentication:
+
+```javascript
+const authMiddleware = options.authMiddleware;
+
+// Apply to specific routes
+router.get(`/:id`, authMiddleware, async (req, res) => {
+  // Access authenticated user data
+  const userId = req.auth.user._id;
+  const userRole = req.auth.user.role;
+  
+  return await UserController.get(req, res, options);
+});
+```
+
+<Warning>
+  Always validate that users can only access and modify their own resources, even on authenticated endpoints.
+</Warning>
+
+## Request Validation
+
+Validate request data before processing:
+
+```javascript
+import { validatePasswordMiddleware } from '../../server/auth.js';
+
+const UserService = {
+  post: async (req, res, options) => {
+    // Validate password strength
+    const pwdCheck = validatePasswordMiddleware(req);
+    if (pwdCheck.status === 'error') {
+      throw new Error(pwdCheck.message);
+    }
+    
+    // Validate email format
+    if (!validator.isEmail(req.body.email)) {
+      throw new Error('Invalid email format');
+    }
+    
+    // Process request...
+  },
+};
+```
+
+## Error Handling
+
+Standardized error responses:
+
+```javascript
+// Success response
+{
+  "status": "success",
+  "data": {
+    "_id": "507f1f77bcf86cd799439011",
+    "username": "johndoe",
+    "email": "john@example.com"
+  }
+}
+
+// Error response
+{
+  "status": "error",
+  "message": "User not found"
+}
+```
+
+## Swagger Documentation
+
+Underpost automatically generates API documentation from swagger comments:
+
+```javascript
+/*
+  #swagger.tags = ['user']
+  #swagger.summary = 'Create user'
+  #swagger.description = 'This endpoint will create a new user account'
+  #swagger.responses[200] = {
+    description: 'User created successfully',
+    content: {
+      'application/json': {
+        schema: {
+          $ref: '#/components/schemas/userResponse'
+        }
+      }
+    }
+  }
+  #swagger.responses[400] = {
+    description: 'Bad request. Please check the input data'
+  }
+*/
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+
+<Card title="Separation of Concerns" icon="layer-group">
+  Keep routers, controllers, and services separate for maintainability
+</Card>
+
+<Card title="Error Handling" icon="triangle-exclamation">
+  Use try-catch blocks and provide meaningful error messages
+</Card>
+
+<Card title="Authentication" icon="lock">
+  Always protect sensitive endpoints with authentication middleware
+</Card>
+
+<Card title="Validation" icon="check-circle">
+  Validate all user inputs before database operations
+</Card>
+
+</CardGroup>
+
+## Next Steps
+
+<Card title="Database Setup" icon="database" href="/guides/database-setup">
+  Learn how to configure database connections and models
+</Card>

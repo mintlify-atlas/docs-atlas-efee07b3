@@ -1,0 +1,530 @@
+---
+title: 'Auth System Implementation'
+description: 'Implement secure JWT-based authentication with session management in Underpost'
+icon: 'lock'
+---
+
+## Overview
+
+Underpost provides a robust authentication system using JWT tokens, PBKDF2 password hashing, session management, and comprehensive security middleware. The auth system includes features like refresh tokens, session rotation, and token theft detection.
+
+## Password Hashing
+
+### PBKDF2 Configuration
+
+Underpost uses PBKDF2 for secure password hashing:
+
+```javascript auth.js
+import crypto from 'crypto';
+import { promisify } from 'util';
+
+const pbkdf2 = promisify(crypto.pbkdf2);
+
+const config = {
+  hashBytes: Number(process.env.PBKDF2_HASH_BYTES) || 32,
+  saltBytes: Number(process.env.PBKDF2_SALT_BYTES) || 16,
+  iterations: Number(process.env.PBKDF2_ITERATIONS) || 150_000,
+  digest: process.env.PBKDF2_DIGEST || 'sha512',
+  refreshTokenBytes: Number(process.env.REFRESH_TOKEN_BYTES) || 48,
+  jwtAlgorithm: process.env.JWT_ALGORITHM || 'HS512',
+};
+```
+
+<Note>
+  The default 150,000 iterations provides strong protection against brute-force attacks while maintaining reasonable performance.
+</Note>
+
+### Hashing Passwords
+
+```javascript auth.js
+/**
+ * Hash password asynchronously using PBKDF2
+ * Stored format: iterations$salt$hash
+ */
+async function hashPassword(password) {
+  const salt = crypto.randomBytes(config.saltBytes).toString('hex');
+  const derived = await pbkdf2(
+    password, 
+    salt, 
+    config.iterations, 
+    config.hashBytes, 
+    config.digest
+  );
+  return `${config.iterations}$${salt}$${derived.toString('hex')}`;
+}
+```
+
+### Verifying Passwords
+
+```javascript auth.js
+/**
+ * Verify password using constant-time comparison
+ */
+async function verifyPassword(password, combined) {
+  if (!combined) return false;
+  
+  const parts = combined.split('$');
+  if (parts.length !== 3) return false;
+  
+  const [itersStr, salt, originalHex] = parts;
+  const iterations = parseInt(itersStr, 10);
+  const derived = await pbkdf2(
+    password, 
+    salt, 
+    iterations, 
+    Buffer.from(originalHex, 'hex').length, 
+    config.digest
+  );
+  
+  const original = Buffer.from(originalHex, 'hex');
+  return crypto.timingSafeEqual(derived, original);
+}
+```
+
+<Steps>
+
+<Step title="Generate Salt">
+  Create a random salt for each password
+</Step>
+
+<Step title="Derive Hash">
+  Use PBKDF2 to derive a secure hash from password and salt
+</Step>
+
+<Step title="Store Format">
+  Save as `iterations$salt$hash` for version compatibility
+</Step>
+
+<Step title="Verify with Timing Safety">
+  Use `timingSafeEqual` to prevent timing attacks
+</Step>
+
+</Steps>
+
+## JWT Token Management
+
+### Signing Tokens
+
+```javascript auth.js
+import jwt from 'jsonwebtoken';
+
+function jwtSign(
+  payload,
+  options = { host: '', path: '' },
+  accessExpireMinutes = process.env.ACCESS_EXPIRE_MINUTES,
+  refreshExpireMinutes = process.env.REFRESH_EXPIRE_MINUTES,
+) {
+  const { issuer, audience } = jwtIssuerAudienceFactory(options);
+  
+  const signOptions = {
+    algorithm: config.jwtAlgorithm,
+    expiresIn: `${accessExpireMinutes}m`,
+    issuer,
+    audience,
+  };
+  
+  if (!payload.jwtid) signOptions.jwtid = generateRandomHex();
+  if (!process.env.JWT_SECRET) throw new Error('JWT key not configured');
+  
+  const now = Date.now();
+  payload.refreshExpiresAt = now + refreshExpireMinutes * 60 * 1000;
+  
+  return jwt.sign(payload, process.env.JWT_SECRET, signOptions);
+}
+```
+
+### Verifying Tokens
+
+```javascript auth.js
+function jwtVerify(token, options = { host: '', path: '' }) {
+  try {
+    const { issuer, audience } = jwtIssuerAudienceFactory(options);
+    
+    const verifyOptions = {
+      algorithms: [config.jwtAlgorithm],
+      issuer,
+      audience,
+    };
+    
+    return jwt.verify(token, process.env.JWT_SECRET, verifyOptions);
+  } catch (err) {
+    throw err;
+  }
+}
+```
+
+### JWT Payload Structure
+
+```javascript user.model.js
+const UserDto = {
+  auth: {
+    payload: (user, jwtid, ip, userAgent, host, path) => {
+      return {
+        _id: user._id.toString(),
+        role: user.role,
+        email: user.email,
+        ip,                  // Request IP for theft detection
+        userAgent,           // Browser fingerprint
+        host,
+        path,
+        jwtid,              // Session ID
+        refreshExpiresAt: Date.now() + parseInt(process.env.REFRESH_EXPIRE_MINUTES) * 60 * 1000,
+      };
+    },
+  },
+};
+```
+
+## Session Management
+
+### Creating Sessions
+
+```javascript auth.js
+async function createSessionAndUserToken(
+  user, 
+  User, 
+  req, 
+  res, 
+  options = { host: '', path: '' }
+) {
+  const refreshToken = hashToken(generateRandomHex());
+  const now = Date.now();
+  const expiresAt = new Date(now + parseInt(process.env.REFRESH_EXPIRE_MINUTES) * 60 * 1000);
+  
+  const newSession = {
+    tokenHash: refreshToken,
+    ip: req.ip,
+    userAgent: req.headers['user-agent'],
+    host: options.host,
+    path: options.path,
+    createdAt: new Date(now),
+    expiresAt,
+  };
+  
+  // Add session to user
+  const updatedUser = await User.findByIdAndUpdate(
+    user._id, 
+    { $push: { activeSessions: newSession } }, 
+    { new: true }
+  );
+  
+  const session = updatedUser.activeSessions[updatedUser.activeSessions.length - 1];
+  const jwtid = session._id.toString();
+  
+  // Set secure cookie
+  res.cookie('refreshToken', refreshToken, cookieOptionsFactory(req, options.host));
+  
+  return { jwtid };
+}
+```
+
+### Session Rotation
+
+Refresh tokens are rotated on each use to prevent token reuse:
+
+```javascript auth.js
+async function refreshSessionAndToken(
+  req, 
+  res, 
+  User, 
+  options = { host: '', path: '' }
+) {
+  const currentRefreshToken = req.cookies.refreshToken;
+  if (!currentRefreshToken) throw new Error('Refresh token missing');
+  
+  // Find user with this token
+  const user = await User.findOne({ 'activeSessions.tokenHash': currentRefreshToken });
+  
+  if (!user) {
+    logger.warn('Refresh token reuse or invalid token detected');
+    res.clearCookie('refreshToken', { path: '/' });
+    throw new Error('Invalid refresh token');
+  }
+  
+  const session = user.activeSessions.find((s) => s.tokenHash === currentRefreshToken);
+  
+  // Check expiry
+  if (session.expiresAt && session.expiresAt < new Date()) {
+    await removeSession(User, user._id, session._id);
+    throw new Error('Refresh token expired');
+  }
+  
+  // Rotate: generate new token
+  const refreshToken = hashToken(generateRandomHex());
+  session.tokenHash = refreshToken;
+  session.expiresAt = new Date(Date.now() + parseInt(process.env.REFRESH_EXPIRE_MINUTES) * 60 * 1000);
+  session.ip = req.ip;
+  session.userAgent = req.headers['user-agent'];
+  
+  await user.save({ validateBeforeSave: false });
+  
+  res.cookie('refreshToken', refreshToken, cookieOptionsFactory(req, options.host));
+  
+  return jwtSign(
+    UserDto.auth.payload(
+      user, 
+      session._id.toString(), 
+      req.ip, 
+      req.headers['user-agent'], 
+      options.host, 
+      options.path
+    ),
+    options,
+  );
+}
+```
+
+<Warning>
+  Token rotation prevents an attacker from using a stolen refresh token multiple times. If token reuse is detected, all sessions should be revoked.
+</Warning>
+
+## Authentication Middleware
+
+### Middleware Factory
+
+```javascript auth.js
+const authMiddlewareFactory = (options = { host: '', path: '' }) => {
+  const authMiddleware = async (req, res, next) => {
+    try {
+      const token = getBearerToken(req);
+      if (!token) 
+        return res.status(401).json({ status: 'error', message: 'unauthorized: token missing' });
+      
+      const payload = jwtVerify(token, options);
+      
+      // Validate IP and User-Agent to mitigate token theft
+      if (payload.ip && payload.ip !== req.ip) {
+        logger.warn(`IP mismatch for ${payload._id}`);
+        return res.status(401).json({ status: 'error', message: 'unauthorized: ip mismatch' });
+      }
+      
+      if (payload.userAgent && payload.userAgent !== req.headers['user-agent']) {
+        logger.warn(`UA mismatch for ${payload._id}`);
+        return res.status(401).json({ status: 'error', message: 'unauthorized device' });
+      }
+      
+      // Verify session exists in database
+      if (payload.jwtid && payload.role !== 'guest') {
+        const User = DataBaseProvider.instance[`${payload.host}${payload.path}`].mongoose.models.User;
+        const user = await User.findOne({ 
+          _id: payload._id, 
+          'activeSessions._id': payload.jwtid 
+        }).lean();
+        
+        if (!user) {
+          return res.status(401).json({ status: 'error', message: 'unauthorized: invalid session' });
+        }
+        
+        const session = user.activeSessions.find((s) => s._id.toString() === payload.jwtid);
+        
+        if (!session || session.expiresAt < new Date()) {
+          return res.status(401).json({ status: 'error', message: 'unauthorized: session expired' });
+        }
+      }
+      
+      req.auth = { user: payload };
+      return next();
+    } catch (err) {
+      logger.warn('authMiddleware error', err && err.message);
+      return res.status(401).json({ status: 'error', message: 'unauthorized' });
+    }
+  };
+  
+  return authMiddleware;
+};
+```
+
+### Role-Based Guards
+
+```javascript auth.js
+const adminGuard = (req, res, next) => {
+  try {
+    if (!req.auth || !commonAdminGuard(req.auth.user.role))
+      return res.status(403).json({ status: 'error', message: 'Insufficient permission' });
+    return next();
+  } catch (err) {
+    logger.error(err);
+    return res.status(400).json({ status: 'error', message: 'bad request' });
+  }
+};
+
+const moderatorGuard = (req, res, next) => {
+  try {
+    if (!req.auth || !commonModeratorGuard(req.auth.user.role))
+      return res.status(403).json({ status: 'error', message: 'Insufficient permission' });
+    return next();
+  } catch (err) {
+    logger.error(err);
+    return res.status(400).json({ status: 'error', message: 'bad request' });
+  }
+};
+```
+
+## Security Middleware
+
+### Helmet and CORS
+
+```javascript auth.js
+import helmet from 'helmet';
+import cors from 'cors';
+import rateLimit from 'express-rate-limit';
+import slowDown from 'express-slow-down';
+
+function applySecurity(app, opts = {}) {
+  const {
+    origin,
+    rate = { windowMs: 15 * 60 * 1000, max: 500 },
+    slowdown = { windowMs: 15 * 60 * 1000, delayAfter: 50, delayMs: () => 500 },
+    frameAncestors = ["'self'"],
+  } = opts;
+  
+  app.disable('x-powered-by');
+  
+  // Generate nonce per request for CSP
+  app.use((req, res, next) => {
+    res.locals.nonce = crypto.randomBytes(16).toString('base64');
+    next();
+  });
+  
+  // Helmet security headers
+  app.use(
+    helmet({
+      crossOriginEmbedderPolicy: true,
+      crossOriginOpenerPolicy: { policy: 'same-origin' },
+      crossOriginResourcePolicy: { policy: 'same-origin' },
+    }),
+  );
+  
+  // HSTS in production
+  if (process.env.NODE_ENV === 'production') {
+    app.use(
+      helmet.hsts({
+        maxAge: 31536000,
+        includeSubDomains: true,
+        preload: true,
+      }),
+    );
+  }
+  
+  // Content Security Policy
+  app.use(
+    helmet.contentSecurityPolicy({
+      useDefaults: true,
+      directives: {
+        defaultSrc: ["'self'"],
+        scriptSrc: [
+          "'self'",
+          (req, res) => `'nonce-${res.locals.nonce}'`,
+        ],
+        styleSrc: [
+          "'self'",
+          (req, res) => `'nonce-${res.locals.nonce}'`,
+        ],
+        imgSrc: ["'self'", 'data:', 'https:'],
+        frameAncestors: frameAncestors,
+      },
+    }),
+  );
+  
+  // CORS
+  app.use(
+    cors({
+      origin: origin || false,
+      methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+      credentials: true,
+      allowedHeaders: ['Content-Type', 'Authorization'],
+    }),
+  );
+  
+  // Rate limiting
+  if (!process.env.DISABLE_API_RATE_LIMIT) {
+    const limiter = rateLimit({
+      windowMs: rate.windowMs,
+      max: rate.max,
+      message: { error: 'Too many requests, please try again later.' },
+    });
+    app.use(limiter);
+    
+    const speedLimiter = slowDown({
+      windowMs: slowdown.windowMs,
+      delayAfter: slowdown.delayAfter,
+      delayMs: () => slowdown.delayMs,
+    });
+    app.use(speedLimiter);
+  }
+  
+  // Cookie parsing
+  app.use(cookieParser(process.env.JWT_SECRET));
+}
+```
+
+## User Registration
+
+```javascript auth.js
+async function createUserAndSession(req, res, User, options = { host: '', path: '' }) {
+  const pwdCheck = validatePasswordMiddleware(req);
+  if (pwdCheck.status === 'error') throw new Error(pwdCheck.message);
+  
+  req.body.password = await hashPassword(req.body.password);
+  req.body.role = req.body.role === 'guest' ? 'guest' : 'user';
+  
+  const saved = await new User(req.body).save();
+  const user = await User.findOne({ _id: saved._id }).select(UserDto.select.get());
+  
+  const { jwtid } = await createSessionAndUserToken(user, User, req, res, options);
+  const token = jwtSign(
+    UserDto.auth.payload(user, jwtid, req.ip, req.headers['user-agent'], options.host, options.path),
+    options,
+  );
+  
+  return { token, user };
+}
+```
+
+## Environment Variables
+
+Configure authentication settings:
+
+```bash .env
+JWT_SECRET=your-secret-key-here
+JWT_ALGORITHM=HS512
+ACCESS_EXPIRE_MINUTES=15
+REFRESH_EXPIRE_MINUTES=10080
+PBKDF2_ITERATIONS=150000
+PBKDF2_HASH_BYTES=32
+PBKDF2_SALT_BYTES=16
+PBKDF2_DIGEST=sha512
+REFRESH_TOKEN_BYTES=48
+```
+
+<Warning>
+  Use a strong, random JWT_SECRET in production. Generate it with `openssl rand -base64 32`.
+</Warning>
+
+## Best Practices
+
+<CardGroup cols={2}>
+
+<Card title="Strong Passwords" icon="key">
+  Enforce password strength requirements with validation middleware
+</Card>
+
+<Card title="Session Rotation" icon="rotate">
+  Rotate refresh tokens on each use to detect theft
+</Card>
+
+<Card title="IP Validation" icon="shield">
+  Track IP and User-Agent to detect session hijacking
+</Card>
+
+<Card title="HTTPS Only" icon="lock">
+  Always use HTTPS in production for secure cookie transmission
+</Card>
+
+</CardGroup>
+
+## Next Steps
+
+<Card title="API Development" icon="code" href="/guides/api-development">
+  Build protected API endpoints using authentication middleware
+</Card>

@@ -1,0 +1,295 @@
+---
+title: 'underpost cmt'
+description: 'Create conventional commits with automatic message formatting'
+---
+
+## Overview
+
+The `underpost cmt` command manages Git commits with conventional commit message formatting. It supports various commit types, changelog generation, and commit history inspection.
+
+## Usage
+
+```bash
+underpost cmt [path] [commit-type] [module-tag] [message] [options]
+```
+
+## Arguments
+
+<ParamField path="path" type="string" default=".">
+  The absolute or relative directory path of the repository.
+  
+  **Example:** `./` or `../my-project`
+</ParamField>
+
+<ParamField path="commit-type" type="string" default="feat">
+  The type of commit to perform. Available types:
+  
+  - **feat** - New feature
+  - **fix** - Bug fix
+  - **docs** - Documentation changes
+  - **style** - Code style changes (formatting, semicolons, etc.)
+  - **refactor** - Code refactoring
+  - **perf** - Performance improvements
+  - **test** - Adding or updating tests
+  - **build** - Build system changes
+  - **ci** - CI/CD changes
+  - **chore** - Other changes that don't modify src or test files
+  - **revert** - Revert previous changes
+  - **reset** - Reset to previous commit (soft reset)
+</ParamField>
+
+<ParamField path="module-tag" type="string" optional>
+  Sets a specific module tag or scope for the commit.
+  
+  **Example:** `cli-repo`, `client-core`, `server-auth`
+</ParamField>
+
+<ParamField path="message" type="string" optional>
+  Provides an additional custom message for the commit. If omitted, uses the default description for the commit type.
+</ParamField>
+
+## Options
+
+### Commit Options
+
+<ParamField path="--empty" type="boolean">
+  Allows committing with empty files (no changes).
+  
+  Useful for triggering CI/CD pipelines or creating placeholder commits.
+</ParamField>
+
+<ParamField path="--copy" type="boolean">
+  Copies the generated commit message to the clipboard instead of committing.
+  
+  Useful for reviewing the message before committing.
+</ParamField>
+
+<ParamField path="--edit" type="boolean">
+  Edits the last commit without changing the commit message (amend).
+  
+  **Warning:** Only use on commits that haven't been pushed.
+</ParamField>
+
+<ParamField path="--cached" type="boolean">
+  Commits staged changes only.
+  
+  Useful when you have both staged and unstaged changes.
+</ParamField>
+
+<ParamField path="--deploy-id" type="string">
+  Sets the deployment configuration ID for the commit context.
+  
+  **Example:** `dd-core`, `dd-cyberia`
+</ParamField>
+
+### Information Options
+
+<ParamField path="--info" type="boolean">
+  Displays information about available commit types and their emojis.
+</ParamField>
+
+<ParamField path="--diff" type="boolean">
+  Shows the current git diff changes.
+  
+  Can be combined with `--cached` to show only staged changes.
+</ParamField>
+
+<ParamField path="--log" type="number">
+  Shows commit history from the specified number of latest commits.
+  
+  **Example:** `--log 5` shows the last 5 commits with diffs.
+</ParamField>
+
+<ParamField path="--last-msg" type="number">
+  Displays the last n commit message.
+  
+  **Example:** `--last-msg 1` shows the most recent commit message.
+</ParamField>
+
+### Advanced Options
+
+<ParamField path="--hashes" type="string">
+  Comma-separated list of specific file hashes of commits to compare.
+  
+  Used with `--diff` to show differences between specific commits.
+  
+  **Example:** `--hashes abc123,def456`
+</ParamField>
+
+<ParamField path="--extension" type="string">
+  Specific file extensions to filter in diffs.
+  
+  **Example:** `--extension js` shows only JavaScript file changes.
+</ParamField>
+
+### Changelog Options
+
+<ParamField path="--changelog" type="string | boolean">
+  Prints the changelog of recent commits. If no number is provided, gets the changelog since the last CI integration.
+  
+  **Example:** `--changelog 10` shows last 10 commits in changelog format.
+</ParamField>
+
+<ParamField path="--changelog-build" type="boolean">
+  Builds a complete CHANGELOG.md file based on the commit history.
+  
+  Generates a markdown file with all version sections.
+</ParamField>
+
+<ParamField path="--changelog-min-version" type="string" default="2.97.1">
+  Sets the minimum version limit for `--changelog-build`.
+  
+  **Example:** `--changelog-min-version 3.0.0`
+</ParamField>
+
+<ParamField path="--changelog-no-hash" type="boolean">
+  Excludes commit hashes from the generated changelog entries.
+  
+  Used with `--changelog-build` for cleaner output.
+</ParamField>
+
+## Examples
+
+### Basic Commit
+
+Create a feature commit with a custom message:
+
+```bash
+underpost cmt ./ feat "Add user authentication"
+```
+
+Generates: `feat: ✨ Add user authentication`
+
+### Commit with Module Scope
+
+Commit with a specific module tag:
+
+```bash
+underpost cmt ./ fix client-core "Fix login button alignment"
+```
+
+Generates: `fix(client-core): 🐛 Fix login button alignment`
+
+### View Commit Types
+
+Display all available commit types:
+
+```bash
+underpost cmt --info
+```
+
+### View Commit History
+
+Show the last 5 commits with file changes:
+
+```bash
+underpost cmt --log 5
+```
+
+### Show Current Changes
+
+View uncommitted changes:
+
+```bash
+underpost cmt --diff
+```
+
+View staged changes only:
+
+```bash
+underpost cmt --diff --cached
+```
+
+### Generate Changelog
+
+Build a complete CHANGELOG.md file:
+
+```bash
+underpost cmt --changelog-build
+```
+
+View changelog for last 20 commits:
+
+```bash
+underpost cmt --changelog 20
+```
+
+### Reset Last Commit
+
+Soft reset (undo) the last commit:
+
+```bash
+underpost cmt ./ reset
+```
+
+Reset the last 3 commits:
+
+```bash
+underpost cmt ./ reset 3
+```
+
+### Copy Commit Message
+
+Generate and copy a commit message without committing:
+
+```bash
+underpost cmt ./ feat api "Add new endpoint" --copy
+```
+
+## Commit Type Reference
+
+Based on the CHANGELOG.md, common commit types include:
+
+- **feat** - New features (e.g., `feat(engine-cyberia): Add shape generator module`)
+- **fix** - Bug fixes (e.g., `fix(client-core): Fix login button click`)
+- **docs** - Documentation (e.g., `docs: Update API reference`)
+- **refactor** - Code refactoring (e.g., `refactor(cli-deploy): Simplify deployment logic`)
+- **chore** - Maintenance tasks (e.g., `chore: Update dependencies`)
+- **perf** - Performance improvements (e.g., `perf(db): Optimize query performance`)
+- **test** - Tests (e.g., `test: Add unit tests for auth`)
+- **ci** - CI/CD changes (e.g., `ci(github-actions): Add workflow`)
+
+## Workflow Examples
+
+### Standard Development Workflow
+
+```bash
+# Make changes to files
+vim src/index.js
+
+# Stage changes
+git add .
+
+# Create commit with conventional format
+underpost cmt ./ feat "Implement new API endpoint"
+
+# Push changes
+underpost push ./ username/repo
+```
+
+### Release Workflow
+
+```bash
+# Build changelog
+underpost cmt --changelog-build
+
+# Review generated CHANGELOG.md
+cat CHANGELOG.md
+
+# Commit the changelog
+git add CHANGELOG.md
+underpost cmt ./ docs "Update changelog for v3.0.0"
+```
+
+## Notes
+
+- The command automatically formats commit messages following the Conventional Commits specification
+- Commit messages include emojis by default for better visual distinction
+- The `reset` type performs a soft reset, keeping your changes in the working directory
+- When using `--changelog-build`, commits must start with `[<tag>]` to be included
+
+## Related Commands
+
+- [`underpost clone`](/cli/commands/clone) - Clone a repository
+- [`underpost pull`](/cli/commands/pull) - Pull latest changes
+- [`underpost push`](/cli/commands/push) - Push commits to remote

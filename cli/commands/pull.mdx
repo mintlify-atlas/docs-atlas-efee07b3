@@ -1,0 +1,121 @@
+---
+title: 'underpost pull'
+description: 'Pull the latest changes from a GitHub repository'
+---
+
+## Overview
+
+The `underpost pull` command pulls the latest changes from a specified GitHub repository into a local repository. It's similar to `git pull` but integrates with Underpost's authentication and extension system.
+
+## Usage
+
+```bash
+underpost pull <path> <uri> [options]
+```
+
+## Arguments
+
+<ParamField path="path" type="string" required>
+  The absolute or relative directory path where the repository is located.
+  
+  **Example:** `./my-repo` or `/home/user/projects/engine`
+</ParamField>
+
+<ParamField path="uri" type="string" required>
+  The URI of the GitHub repository in the format `username/repository`.
+  
+  **Example:** `underpostnet/pwa-microservices-template`
+</ParamField>
+
+## Options
+
+<ParamField path="-g8" type="boolean" default="false">
+  Uses the `.g8` repository extension instead of `.git` for pulling.
+  
+  This is a custom extension used in the Underpost ecosystem.
+</ParamField>
+
+## Environment Variables
+
+The pull command uses the following environment variables:
+
+- **GITHUB_TOKEN**: Optional. If set, uses this token for authenticated pulls (required for private repositories)
+- **GITHUB_USERNAME**: Used as the default username if not specified in the URI
+
+## Examples
+
+### Pull from Current Directory
+
+Pull the latest changes into the current directory:
+
+```bash
+underpost pull ./ underpostnet/engine
+```
+
+### Pull from Specific Directory
+
+Pull changes into a specific repository:
+
+```bash
+underpost pull ../my-project myusername/my-project
+```
+
+### Pull with G8 Extension
+
+Pull from a repository using the `.g8` extension:
+
+```bash
+underpost pull ./ underpostnet/engine -g8
+```
+
+### Pull Private Repository
+
+For private repositories, ensure your `GITHUB_TOKEN` is set:
+
+```bash
+export GITHUB_TOKEN=ghp_your_token_here
+underpost pull ./ yourusername/private-repo
+```
+
+## Workflow Example
+
+Typical workflow for updating a repository:
+
+```bash
+# Clone the repository
+underpost clone underpostnet/engine
+
+# Navigate to the repository
+cd engine
+
+# Make some changes
+# ...
+
+# Pull latest changes from remote
+underpost pull ./ underpostnet/engine
+
+# Commit your changes
+underpost cmt ./ feat "Add new feature"
+
+# Push to remote
+underpost push ./ underpostnet/engine
+```
+
+## Behavior
+
+- Pulls changes from the default branch of the remote repository
+- Uses HTTPS protocol for pulling
+- Automatically includes authentication token if `GITHUB_TOKEN` is set
+- Executes in the specified directory
+
+## Notes
+
+- Make sure you're in a valid Git repository before running the pull command
+- If there are conflicts, you'll need to resolve them manually using Git
+- The command runs silently (logs are disabled) to keep output clean
+
+## Related Commands
+
+- [`underpost clone`](/cli/commands/clone) - Clone a repository from GitHub
+- [`underpost commit`](/cli/commands/commit) - Commit changes to the repository
+- [`underpost push`](/cli/commands/push) - Push commits to a remote repository

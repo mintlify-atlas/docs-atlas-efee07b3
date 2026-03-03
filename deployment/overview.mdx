@@ -1,0 +1,99 @@
+---
+title: Deployment Overview
+description: Overview of deployment strategies and environments for Underpost applications
+---
+
+# Deployment Overview
+
+Underpost provides flexible deployment options to run your applications across different environments, from local development to production-grade infrastructure.
+
+## Deployment Strategies
+
+Underpost supports three primary deployment approaches:
+
+### Docker Containerization
+
+Build and run Underpost applications in isolated Docker containers using the official Rocky Linux 9 base image with Node.js 24.x.
+
+**Best for:**
+- Local development and testing
+- Single-server deployments
+- Quick prototyping
+- CI/CD pipelines
+
+[Learn more about Docker deployment →](/deployment/docker)
+
+### Kubernetes Orchestration
+
+Deploy scalable microservices on Kubernetes with support for StatefulSets, blue-green deployments, and service mesh integration.
+
+**Best for:**
+- Production workloads
+- Multi-service architectures
+- High availability requirements
+- Auto-scaling needs
+
+[Learn more about Kubernetes deployment →](/deployment/kubernetes)
+
+### Bare Metal Provisioning
+
+Provision physical servers with PXE boot, UEFI/GRUB, and automated OS installation workflows for ARM64 and AMD64 architectures.
+
+**Best for:**
+- On-premises infrastructure
+- Edge computing deployments
+- Custom hardware requirements
+- Maximum performance control
+
+[Learn more about bare metal deployment →](/deployment/baremetal)
+
+## Environment Configuration
+
+Underpost uses environment-specific configuration files:
+
+- `.env.development` - Development environment
+- `.env.production` - Production environment
+- `.env.test` - Testing environment
+
+## Port Allocation
+
+Default port ranges used by Underpost:
+
+| Port Range | Purpose |
+|------------|----------|
+| 22 | SSH access |
+| 80 | HTTP |
+| 443 | HTTPS |
+| 3000-3100 | Application servers |
+| 4000-4100 | Microservices |
+
+## NPM Scripts
+
+Common deployment-related scripts from `package.json`:
+
+```json
+{
+  "scripts": {
+    "start": "env-cmd -f .env.production node --max-old-space-size=8192 src/server",
+    "build": "node bin/deploy build-full-client",
+    "dev": "env-cmd -f .env.development nodemon src/server",
+    "prod-img": "env-cmd -f .env.production node src/server"
+  }
+}
+```
+
+## Next Steps
+
+Choose your deployment strategy:
+
+<CardGroup cols={3}>
+  <Card title="Docker" icon="docker" href="/deployment/docker">
+    Containerized deployment
+  </Card>
+  <Card title="Kubernetes" icon="dharmachakra" href="/deployment/kubernetes">
+    Orchestrated deployment
+  </Card>
+  <Card title="Bare Metal" icon="server" href="/deployment/baremetal">
+    Physical infrastructure
+  </Card>
+</CardGroup>

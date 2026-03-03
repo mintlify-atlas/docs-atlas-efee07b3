@@ -1,0 +1,194 @@
+---
+title: underpost new
+description: Initialize new Underpost projects, services, or deployment configurations
+---
+
+The `underpost new` command initializes new Underpost projects, services, or deployment configurations. It supports creating deploy ID configurations, building repositories, and managing deployment templates.
+
+## Usage
+
+```bash
+underpost new [app-name] [options]
+```
+
+## Arguments
+
+<ParamField path="app-name" type="string" optional>
+  The name of the new project. Optional argument that specifies the project identifier.
+</ParamField>
+
+## Options
+
+### Configuration Options
+
+<ParamField path="--deploy-id" type="string">
+  Create deploy ID conf env files for a specific deployment configuration.
+
+  ```bash
+  underpost new --deploy-id dd-default
+  ```
+</ParamField>
+
+<ParamField path="--sub-conf" type="string">
+  Create sub conf env files for modular configuration management.
+
+  ```bash
+  underpost new --deploy-id dd-default --sub-conf api
+  ```
+</ParamField>
+
+<ParamField path="--default-conf" type="boolean">
+  Create default deploy ID conf env files with standard settings.
+
+  ```bash
+  underpost new --deploy-id dd-default --default-conf
+  ```
+</ParamField>
+
+### Build Options
+
+<ParamField path="--build" type="boolean">
+  Build the deployment to pwa-microservices-template. Requires `--deploy-id` option.
+
+  ```bash
+  underpost new --deploy-id dd-default --build
+  ```
+</ParamField>
+
+<ParamField path="--clean-template" type="boolean">
+  Clean the build directory (pwa-microservices-template) before building.
+
+  ```bash
+  underpost new --deploy-id dd-default --clean-template --build
+  ```
+</ParamField>
+
+### Repository Options
+
+<ParamField path="--build-repos" type="boolean">
+  Create deploy ID repositories for version control.
+
+  ```bash
+  underpost new --deploy-id dd-default --build-repos
+  ```
+</ParamField>
+
+<ParamField path="--sync-conf" type="boolean">
+  Sync configuration to private repositories. Requires `--deploy-id` option.
+
+  ```bash
+  underpost new --deploy-id dd-default --sync-conf
+  ```
+</ParamField>
+
+### Cluster Options
+
+<ParamField path="--cluster" type="boolean">
+  Create deploy ID cluster files and sync to current cluster.
+
+  ```bash
+  underpost new --deploy-id dd-default --cluster
+  ```
+</ParamField>
+
+### Management Options
+
+<ParamField path="--purge" type="boolean">
+  Remove deploy ID conf and all related repositories. Requires `--deploy-id` option.
+
+  **Warning:** This permanently deletes configuration and repositories.
+
+  ```bash
+  underpost new --deploy-id dd-default --purge
+  ```
+</ParamField>
+
+### Development Options
+
+<ParamField path="--dev" type="boolean">
+  Sets the development CLI context for local development workflows.
+
+  ```bash
+  underpost new --deploy-id dd-default --dev
+  ```
+</ParamField>
+
+<ParamField path="--conf-workflow-id" type="string">
+  Set custom configuration workflow ID for conf generation.
+
+  ```bash
+  underpost new --deploy-id dd-default --conf-workflow-id custom-workflow
+  ```
+</ParamField>
+
+## Examples
+
+### Create a New Project
+
+```bash
+underpost new my-app
+```
+
+### Create Deploy Configuration
+
+```bash
+underpost new --deploy-id dd-production
+```
+
+### Create Default Configuration
+
+```bash
+underpost new --deploy-id dd-default --default-conf
+```
+
+### Build Deployment Template
+
+```bash
+underpost new --deploy-id dd-default --build --clean-template
+```
+
+### Create and Sync Repositories
+
+```bash
+underpost new --deploy-id dd-production --build-repos --sync-conf
+```
+
+### Setup Cluster Configuration
+
+```bash
+underpost new --deploy-id dd-default --cluster
+```
+
+### Development Workflow
+
+<Steps>
+  <Step title="Create deploy configuration">
+    ```bash
+    underpost new --deploy-id dd-dev --dev
+    ```
+  </Step>
+  
+  <Step title="Build repositories">
+    ```bash
+    underpost new --deploy-id dd-dev --build-repos
+    ```
+  </Step>
+  
+  <Step title="Build deployment">
+    ```bash
+    underpost new --deploy-id dd-dev --build
+    ```
+  </Step>
+</Steps>
+
+### Remove Deployment Configuration
+
+```bash
+underpost new --deploy-id dd-old --purge
+```
+
+## Related Commands
+
+- [underpost start](/cli/commands/start) - Start application servers and services
+- [underpost deploy](/cli/commands/deploy) - Manage deployments
+- [underpost config](/cli/commands/config) - Manage configurations

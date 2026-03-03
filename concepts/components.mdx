@@ -1,0 +1,329 @@
+---
+title: Component System
+description: Understanding the Underpost component architecture and module loading
+---
+
+The Underpost framework uses a modular component system that separates core framework functionality from application-specific logic. Components are organized into categories and loaded dynamically based on configuration.
+
+## Component Categories
+
+### Core Components
+
+Core components provide essential framework functionality:
+
+```javascript
+components: {
+  core: [
+    'CommonJs',        // Common utilities
+    'VanillaJs',       // DOM manipulation helpers
+    'Responsive',      // Responsive design utilities
+    'Keyboard',        // Keyboard event handling
+    'Translate',       // Internationalization
+    'Modal',           // Modal dialog system
+    'Router',          // Client-side routing
+    'Logger',          // Logging utilities
+    'Auth',            // Authentication
+    'SocketIo',        // WebSocket communication
+    'Worker',          // Web Worker management
+    // ... more core components
+  ]
+}
+```
+
+### Custom Components
+
+Custom components implement application-specific functionality:
+
+```javascript
+components: {
+  default: [
+    'MenuDefault',       // Application menu
+    'RoutesDefault',     // Route definitions
+    'LogInDefault',      // Login UI
+    'LogOutDefault',     // Logout UI
+    'SignUpDefault',     // Registration UI
+    'TranslateDefault',  // Custom translations
+    'SettingsDefault',   // Settings interface
+    'SocketIoDefault',   // Socket.IO setup
+  ]
+}
+```
+
+## Component Loading
+
+Components are loaded asynchronously during application initialization:
+
+```javascript Default.index.js
+import { Css } from './components/core/Css.js';
+import { Responsive } from './components/core/Responsive.js';
+import { TranslateCore } from './components/core/Translate.js';
+import { LogInDefault } from './components/default/LogInDefault.js';
+import { MenuDefault } from './components/default/MenuDefault.js';
+import { RouterDefault } from './components/default/RoutesDefault.js';
+import { Worker } from './components/core/Worker.js';
+import { Modal } from './components/core/Modal.js';
+
+window.onload = () =>
+  Worker.instance({
+    router: RouterDefault,
+    render: async () => {
+      // Load components in dependency order
+      await Css.loadThemes([CssDefaultLight, CssDefaultDark]);
+      await TranslateCore.Init();
+      await TranslateDefault.Init();
+      await Responsive.Init();
+      await MenuDefault.Render({ htmlMainBody });
+      await SocketIo.Init({ channels: ElementsDefault.Data, path: `/` });
+      await SocketIoDefault.Init();
+      await LogInDefault();
+      await LogOutDefault();
+      await SignUpDefault();
+      await Keyboard.Init({ callBackTime: DefaultParams.EVENT_CALLBACK_TIME });
+      await Modal.RenderSeoSanitizer();
+    },
+  });
+```
+
+<Note>
+Components are initialized in a specific order to ensure dependencies are available when needed.
+</Note>
+
+## Component Structure
+
+Components follow a consistent file structure:
+
+```
+src/client/components/
+├── core/                      # Core framework components
+│   ├── CommonJs.js           # Common utilities
+│   ├── Router.js             # Routing system
+│   ├── Modal.js              # Modal dialogs
+│   ├── SocketIo.js           # WebSocket client
+│   └── ...
+└── default/                   # Custom components
+    ├── MenuDefault.js        # Menu component
+    ├── RoutesDefault.js      # Route definitions
+    ├── LogInDefault.js       # Login component
+    └── ...
+```
+
+## Core Component Examples
+
+### Router Component
+
+The Router component handles client-side navigation:
+
+```javascript
+import { Router, LoadRouter } from './components/core/Router.js';
+
+// Initialize router with route definitions
+LoadRouter({
+  Routes: () => ({
+    '/': { render: () => HomePage() },
+    '/home': { render: () => HomePage() },
+    '/settings': { render: () => SettingsPage() },
+    '/log-in': { render: () => LogInPage() },
+  })
+});
+```
+
+### Modal Component
+
+The Modal component manages overlay dialogs:
+
+```javascript
+import { Modal } from './components/core/Modal.js';
+
+// Render modal
+Modal.Render({
+  id: 'login-modal',
+  html: async () => html`<div>Login Form</div>`,
+  title: 'Log In',
+  route: 'log-in'
+});
+```
+
+### SocketIo Component
+
+The SocketIo component handles real-time communication:
+
+```javascript
+import { SocketIo } from './components/core/SocketIo.js';
+
+// Initialize WebSocket connection
+await SocketIo.Init({
+  channels: ElementsDefault.Data,
+  path: `/`
+});
+
+// Listen for events
+SocketIo.on('message', (data) => {
+  console.log('Received:', data);
+});
+```
+
+## UI Components
+
+The framework includes several UI-focused core components:
+
+<Accordion title="Available UI Components">
+  - **BtnIcon**: Icon button component
+  - **ToggleSwitch**: Toggle switch control
+  - **DropDown**: Dropdown menu component
+  - **LoadingAnimation**: Loading spinner
+  - **Input**: Form input component
+  - **Validator**: Form validation
+  - **Badge**: Badge/label component
+  - **ToolTip**: Tooltip component
+  - **Alert**: Alert notification
+  - **Pagination**: Pagination controls
+  - **SearchBox**: Search input component
+  - **Panel**: Panel container
+  - **PanelForm**: Form panel component
+</Accordion>
+
+## Advanced Components
+
+Several components provide advanced functionality:
+
+### AgGrid Component
+
+Data grid integration:
+
+```javascript
+imponents.core = [
+  'AgGrid',  // AG Grid data tables
+  // ...
+]
+```
+
+### D3Chart Component
+
+Data visualization:
+
+```javascript
+components.core = [
+  'D3Chart',  // D3.js charting
+  // ...
+]
+```
+
+### RichText Component
+
+Markdown editor:
+
+```javascript
+components.core = [
+  'RichText',  // Markdown/rich text editor
+  // ...
+]
+```
+
+### FileExplorer Component
+
+File management interface:
+
+```javascript
+components.core = [
+  'FileExplorer',  // File browser/uploader
+  // ...
+]
+```
+
+## Creating Custom Components
+
+To create a new component:
+
+1. Create the component file:
+
+```javascript src/client/components/custom/MyComponent.js
+export const MyComponent = {
+  Render: async (options = {}) => {
+    return html`
+      <div class="my-component">
+        <!-- Component HTML -->
+      </div>
+    `;
+  },
+  
+  Init: async () => {
+    // Component initialization
+  }
+};
+```
+
+2. Add to configuration:
+
+```javascript conf.js
+client: {
+  default: {
+    components: {
+      custom: ['MyComponent']
+    }
+  }
+}
+```
+
+3. Import and use:
+
+```javascript
+import { MyComponent } from './components/custom/MyComponent.js';
+
+await MyComponent.Init();
+await MyComponent.Render();
+```
+
+## Component Dependencies
+
+Some components depend on external libraries defined in `dists`:
+
+```javascript
+dists: [
+  {
+    folder: './node_modules/@neodrag/vanilla/dist/min',
+    public_folder: '/dist/@neodrag-vanilla',
+    import_name: '@neodrag/vanilla',
+  },
+  {
+    folder: './node_modules/sortablejs/modular',
+    public_folder: '/dist/sortablejs',
+    import_name: 'sortablejs',
+  },
+  {
+    folder: './node_modules/easymde/dist',
+    public_folder: '/dist/easymde',  // For RichText component
+  },
+]
+```
+
+<Warning>
+Ensure required dependencies are installed via npm and configured in `dists` before using components that depend on them.
+</Warning>
+
+## Event Components
+
+Event handling components:
+
+- **EventsUI**: UI event management
+- **Keyboard**: Keyboard event handling
+- **Responsive**: Responsive design events
+
+## State Management
+
+Components can maintain state through:
+
+- Component-level state objects
+- Worker instance for global state
+- LocalStorage for persistence
+- SocketIo for synchronized state
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Routing System" icon="route" href="/concepts/routing">
+    Learn about client-side routing
+  </Card>
+  <Card title="Configuration" icon="sliders" href="/concepts/configuration">
+    Configure component loading
+  </Card>
+</CardGroup>

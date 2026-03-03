@@ -1,0 +1,370 @@
+---
+title: 'Client Configuration'
+description: 'Complete API reference for Underpost client configuration'
+---
+
+## Overview
+
+The client configuration defines the frontend application structure, including metadata, components, views, external dependencies, and services.
+
+## Configuration Structure
+
+Client configuration is organized by client ID:
+
+```javascript
+client: {
+  default: {
+    metadata: { /* ... */ },
+    components: { /* ... */ },
+    views: [ /* ... */ ],
+    dists: [ /* ... */ ],
+    services: [ /* ... */ ]
+  }
+}
+```
+
+## Metadata Configuration
+
+<ParamField path="metadata" type="object" required>
+  Application metadata for SEO, PWA, and branding.
+  
+  <Expandable title="Metadata Properties">
+    <ParamField path="metadata.title" type="string" required>
+      Application title displayed in browser tabs and PWA.
+      
+      **Example:** `"PWA Demo App"`
+    </ParamField>
+    
+    <ParamField path="metadata.backgroundImage" type="string">
+      Background image path for splash screens.
+      
+      **Example:** `"assets/background/white0-min.jpg"`
+    </ParamField>
+    
+    <ParamField path="metadata.description" type="string" required>
+      Meta description for SEO.
+      
+      **Example:** `"Web application"`
+    </ParamField>
+    
+    <ParamField path="metadata.keywords" type="string[]" required>
+      SEO keywords array.
+      
+      **Example:** `["web", "app", "spa", "demo", "github-pages"]`
+    </ParamField>
+    
+    <ParamField path="metadata.author" type="string">
+      Author information or URL.
+      
+      **Example:** `"https://github.com/underpostnet"`
+    </ParamField>
+    
+    <ParamField path="metadata.thumbnail" type="string" required>
+      Thumbnail image for social sharing and PWA icons.
+      
+      **Example:** `"android-chrome-384x384.png"`
+    </ParamField>
+    
+    <ParamField path="metadata.themeColor" type="string" required>
+      PWA theme color (hex code).
+      
+      **Example:** `"#ececec"`
+    </ParamField>
+    
+    <ParamField path="metadata.pwaAssetsPath" type="string">
+      Base path for PWA assets.
+      
+      **Default:** `""`
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Components Configuration
+
+<ParamField path="components" type="object" required>
+  Client-side components to load for the application.
+  
+  <Expandable title="Components Properties">
+    <ParamField path="components.core" type="string[]" required>
+      Core framework components required by the application.
+      
+      These are the fundamental building blocks loaded on every page.
+      
+      **Example:**
+      ```javascript
+      core: [
+        'CommonJs',
+        'VanillaJs',
+        'Responsive',
+        'Keyboard',
+        'Translate',
+        'Modal',
+        'BtnIcon',
+        'Logger',
+        'Css',
+        'NotificationManager',
+        'ToggleSwitch',
+        'DropDown',
+        'LoadingAnimation',
+        'EventsUI',
+        'AgGrid',
+        'Input',
+        'Validator',
+        'SignUp',
+        'LogIn',
+        'LogOut',
+        'Router',
+        'Account',
+        'PublicProfile',
+        'Auth',
+        'FullScreen',
+        'RichText',
+        'CalendarCore',
+        'D3Chart',
+        'Stream',
+        'SocketIo',
+        'Docs',
+        'Content',
+        'FileExplorer',
+        'Chat',
+        'Worker',
+        'CssCore',
+        'Wallet',
+        'Badge',
+        'ToolTip',
+        'Webhook',
+        'Recover',
+        'Panel',
+        'PanelForm',
+        'Scroll',
+        'Alert',
+        '404',
+        '500',
+        'Pagination',
+        'windowGetDimensions',
+        'SearchBox'
+      ]
+      ```
+    </ParamField>
+    
+    <ParamField path="components.default" type="string[]" required>
+      Application-specific components that extend core functionality.
+      
+      **Example:**
+      ```javascript
+      default: [
+        'MenuDefault',
+        'RoutesDefault',
+        'ElementsDefault',
+        'CommonDefault',
+        'CssDefault',
+        'LogInDefault',
+        'LogOutDefault',
+        'SignUpDefault',
+        'TranslateDefault',
+        'SettingsDefault',
+        'SocketIoDefault'
+      ]
+      ```
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Views Configuration
+
+<ParamField path="views" type="object[]" required>
+  Route definitions for client-side routing and SSR.
+  
+  Each view object defines a route, its client component, and SSR handler.
+  
+  <Expandable title="View Object Properties">
+    <ParamField path="views[].path" type="string" required>
+      URL path for the route.
+      
+      **Example:** `"/"`
+    </ParamField>
+    
+    <ParamField path="views[].title" type="string">
+      Page title override for this route.
+      
+      **Example:** `"Home"`
+    </ParamField>
+    
+    <ParamField path="views[].client" type="string" required>
+      Client component to render for this route.
+      
+      **Example:** `"Default"`
+    </ParamField>
+    
+    <ParamField path="views[].ssr" type="string" required>
+      SSR configuration to use for this route.
+      
+      References a key in the SSR configuration.
+      
+      **Example:** `"Default"`
+    </ParamField>
+  </Expandable>
+  
+  **Example:**
+  ```javascript
+  views: [
+    { path: '/', title: 'Home', client: 'Default', ssr: 'Default' },
+    { path: '/home', title: 'Home', client: 'Default', ssr: 'Default' },
+    { path: '/settings', client: 'Default', ssr: 'Default' },
+    { path: '/log-in', client: 'Default', ssr: 'Default' },
+    { path: '/sign-up', client: 'Default', ssr: 'Default' },
+    { path: '/log-out', client: 'Default', ssr: 'Default' },
+    { path: '/account', client: 'Default', ssr: 'Default' },
+    { path: '/docs', client: 'Default', ssr: 'Default' },
+    { path: '/recover', client: 'Default', ssr: 'Default' },
+    { path: '/u', client: 'Default', ssr: 'Default' },
+    { path: '/default-management', client: 'Default', ssr: 'Default' },
+    { client: 'Default', ssr: 'Default', path: '/404', title: '404 Not Found' },
+    { client: 'Default', ssr: 'Default', path: '/500', title: '500 Server Error' },
+    { path: '/blog', client: 'Default', ssr: 'Default' },
+    { path: '/chat', client: 'Default', ssr: 'Default' }
+  ]
+  ```
+</ParamField>
+
+## External Dependencies (Dists)
+
+<ParamField path="dists" type="object[]" required>
+  External npm package distributions to include in the build.
+  
+  Maps node_modules to public folders and configures import paths.
+  
+  <Expandable title="Dist Object Properties">
+    <ParamField path="dists[].folder" type="string" required>
+      Source folder in node_modules.
+      
+      **Example:** `"./node_modules/@neodrag/vanilla/dist/min"`
+    </ParamField>
+    
+    <ParamField path="dists[].public_folder" type="string" required>
+      Public destination folder path.
+      
+      **Example:** `"/dist/@neodrag-vanilla"`
+    </ParamField>
+    
+    <ParamField path="dists[].import_name" type="string">
+      Import name used in source code.
+      
+      **Example:** `"@neodrag/vanilla"`
+    </ParamField>
+    
+    <ParamField path="dists[].import_name_build" type="string">
+      Built import path for production.
+      
+      **Example:** `"/dist/@neodrag-vanilla/index.js"`
+    </ParamField>
+    
+    <ParamField path="dists[].styles" type="string">
+      Source folder for CSS/styles.
+      
+      **Example:** `"./node_modules/ag-grid-community/styles"`
+    </ParamField>
+    
+    <ParamField path="dists[].public_styles_folder" type="string">
+      Public destination for styles.
+      
+      **Example:** `"/styles/ag-grid-community"`
+    </ParamField>
+  </Expandable>
+  
+  **Example:**
+  ```javascript
+  dists: [
+    {
+      folder: './node_modules/@neodrag/vanilla/dist/min',
+      public_folder: '/dist/@neodrag-vanilla',
+      import_name: '@neodrag/vanilla',
+      import_name_build: '/dist/@neodrag-vanilla/index.js'
+    },
+    {
+      folder: './node_modules/@fortawesome/fontawesome-free',
+      public_folder: '/dist/fontawesome'
+    },
+    {
+      folder: './node_modules/sortablejs/modular',
+      public_folder: '/dist/sortablejs',
+      import_name: 'sortablejs',
+      import_name_build: '/dist/sortablejs/sortable.complete.esm.js'
+    },
+    {
+      import_name: 'ag-grid-community',
+      import_name_build: '/dist/ag-grid-community/ag-grid-community.min.js',
+      folder: './node_modules/ag-grid-community/dist',
+      public_folder: '/dist/ag-grid-community',
+      styles: './node_modules/ag-grid-community/styles',
+      public_styles_folder: '/styles/ag-grid-community'
+    }
+  ]
+  ```
+</ParamField>
+
+## Services Configuration
+
+<ParamField path="services" type="string[]" required>
+  API services available to this client.
+  
+  Each service corresponds to an API module.
+  
+  **Example:** `["default", "core", "user", "test", "file", "document"]`
+</ParamField>
+
+## Complete Example
+
+```javascript
+client: {
+  default: {
+    metadata: {
+      title: 'PWA Demo App',
+      backgroundImage: 'assets/background/white0-min.jpg',
+      description: 'Web application',
+      keywords: ['web', 'app', 'spa', 'demo', 'github-pages'],
+      author: 'https://github.com/underpostnet',
+      thumbnail: 'android-chrome-384x384.png',
+      themeColor: '#ececec',
+      pwaAssetsPath: ''
+    },
+    components: {
+      core: [
+        'CommonJs',
+        'VanillaJs',
+        'Responsive',
+        'Modal',
+        'Router',
+        // ... more core components
+      ],
+      default: [
+        'MenuDefault',
+        'RoutesDefault',
+        'ElementsDefault',
+        // ... more default components
+      ]
+    },
+    views: [
+      { path: '/', title: 'Home', client: 'Default', ssr: 'Default' },
+      { path: '/settings', client: 'Default', ssr: 'Default' },
+      // ... more routes
+    ],
+    dists: [
+      {
+        folder: './node_modules/@neodrag/vanilla/dist/min',
+        public_folder: '/dist/@neodrag-vanilla',
+        import_name: '@neodrag/vanilla',
+        import_name_build: '/dist/@neodrag-vanilla/index.js'
+      },
+      // ... more dependencies
+    ],
+    services: ['default', 'core', 'user', 'test', 'file', 'document']
+  }
+}
+```
+
+## Related
+
+- [Server Configuration](/api/configuration/server)
+- [Concepts: Configuration](/concepts/configuration)
+- [Component System](/concepts/components)

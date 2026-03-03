@@ -1,0 +1,94 @@
+---
+title: 'underpost clone'
+description: 'Clone GitHub repositories with support for bare cloning and custom extensions'
+---
+
+## Overview
+
+The `underpost clone` command clones a specified GitHub repository into the current directory. It supports both standard and bare clones, and can work with custom `.g8` repository extensions.
+
+## Usage
+
+```bash
+underpost clone <uri> [options]
+```
+
+## Arguments
+
+<ParamField path="uri" type="string" required>
+  The URI of the GitHub repository in the format `username/repository`.
+  
+  **Example:** `underpostnet/pwa-microservices-template`
+</ParamField>
+
+## Options
+
+<ParamField path="--bare" type="boolean" default="false">
+  Performs a bare clone, downloading only the `.git` files without a working directory.
+  
+  Useful for creating mirror repositories or when you only need the Git history.
+</ParamField>
+
+<ParamField path="-g8" type="boolean" default="false">
+  Uses the `.g8` repository extension instead of `.git` for cloning.
+  
+  This is a custom extension used in the Underpost ecosystem.
+</ParamField>
+
+## Environment Variables
+
+The clone command uses the following environment variables:
+
+- **GITHUB_TOKEN**: Optional. If set, uses this token for authenticated cloning (required for private repositories)
+- **GITHUB_USERNAME**: Used as the default username if not specified in the URI
+
+## Examples
+
+### Basic Clone
+
+Clone a public repository:
+
+```bash
+underpost clone underpostnet/engine
+```
+
+This creates a directory named `engine` with the full repository contents.
+
+### Bare Clone
+
+Create a bare repository (no working directory):
+
+```bash
+underpost clone underpostnet/engine --bare
+```
+
+Useful for creating a mirror or backup of a repository.
+
+### Clone with G8 Extension
+
+Clone using the `.g8` extension:
+
+```bash
+underpost clone underpostnet/engine -g8
+```
+
+### Clone Private Repository
+
+For private repositories, ensure your `GITHUB_TOKEN` is set:
+
+```bash
+export GITHUB_TOKEN=ghp_your_token_here
+underpost clone yourusername/private-repo
+```
+
+## Behavior
+
+- If the target directory already exists, it will be removed before cloning
+- Uses HTTPS protocol for cloning
+- Automatically includes authentication token if `GITHUB_TOKEN` is set
+- Creates the repository directory with the same name as the repository
+
+## Related Commands
+
+- [`underpost pull`](/cli/commands/pull) - Pull latest changes from a repository
+- [`underpost push`](/cli/commands/push) - Push commits to a remote repository

@@ -1,0 +1,299 @@
+---
+title: Build Operations
+description: Build client bundles, configurations, and deployment artifacts
+---
+
+Build operations in Underpost are primarily handled through the `underpost start` command with the `--build` flag. Additional build utilities are available through the `bin/deploy` script for advanced use cases.
+
+## Primary Build Command
+
+The main method to build Underpost applications:
+
+```bash
+underpost start <deploy-id> [env] --build [options]
+```
+
+See the [underpost start](/cli/commands/start) documentation for complete details.
+
+## Build Types
+
+### Client Build
+
+Builds the full client-side application bundle:
+
+```bash
+underpost start dd-default production --build
+```
+
+**Build process includes:**
+- Repository cloning
+- Dependency installation
+- Configuration loading
+- ITC scripts execution
+- Client bundle compilation
+
+### Quick Install Build
+
+Accelerated build using dependency copying:
+
+```bash
+underpost start dd-default development --build --underpost-quickly-install
+```
+
+**Benefits:**
+- Faster build times
+- Reduced network usage
+- Ideal for development workflows
+
+## Advanced Build Operations
+
+These operations use the `node bin/deploy` interface:
+
+### Full Client Build
+
+Build client for specific hosts and paths:
+
+```bash
+node bin/deploy build-full-client <deploy-id> [sub-conf] [hosts] [paths]
+```
+
+<ParamField path="deploy-id" type="string" required>
+  Deployment identifier (e.g., `dd-default`)
+</ParamField>
+
+<ParamField path="sub-conf" type="string" optional>
+  Sub-configuration name
+</ParamField>
+
+<ParamField path="hosts" type="string" optional>
+  Comma-separated list of hosts to build for
+</ParamField>
+
+<ParamField path="paths" type="string" optional>
+  Comma-separated list of paths to build for
+</ParamField>
+
+**Example:**
+```bash
+node bin/deploy build-full-client dd-production "" "example.com,api.example.com"
+```
+
+### Single Replica Build
+
+Build configuration for single replica deployments:
+
+```bash
+node bin/deploy build-single-replica <deploy-id> <host> <path>
+```
+
+**Workflow:**
+<Steps>
+  <Step title="Copy base configuration">
+    Creates replica configurations from base deploy-id
+  </Step>
+  
+  <Step title="Update package.json">
+    Replaces deploy-id references in package configuration
+  </Step>
+  
+  <Step title="Configure server.json">
+    Extracts single replica configuration from server conf
+  </Step>
+</Steps>
+
+**Example:**
+```bash
+node bin/deploy build-single-replica dd-default localhost /api
+```
+
+## Build Configuration
+
+The build process reads from `./conf/conf.server.json`:
+
+```json
+{
+  "localhost": {
+    "/": {
+      "liteBuild": false,
+      "minifyBuild": true,
+      "singleReplica": false,
+      "replicas": ["@blue", "@green"]
+    }
+  }
+}
+```
+
+### Configuration Options
+
+<ParamField path="liteBuild" type="boolean" default="false">
+  Enable lite build mode (reduced bundle size)
+</ParamField>
+
+<ParamField path="minifyBuild" type="boolean">
+  Enable minification (auto-enabled for production)
+</ParamField>
+
+<ParamField path="singleReplica" type="boolean" default="false">
+  Build as single replica deployment
+</ParamField>
+
+<ParamField path="replicas" type="array">
+  Array of replica identifiers (e.g., `["@blue", "@green"]`)
+</ParamField>
+
+## Build Outputs
+
+Builds generate the following artifacts:
+
+### Client Bundle
+- JavaScript bundles (minified for production)
+- CSS stylesheets
+- Static assets
+- Service worker files
+
+### Location
+```
+./build/<deploy-id>/
+  ├── js/
+  ├── css/
+  ├── assets/
+  └── sw.js
+```
+
+### Configuration Files
+- Updated `conf.server.json`
+- Environment-specific `.env` files
+- Replica package.json files
+
+## Build Workflow Examples
+
+### Development Build
+
+<Steps>
+  <Step title="Build with quick install">
+    ```bash
+    underpost start dd-dev development --build --underpost-quickly-install
+    ```
+  </Step>
+  
+  <Step title="Start development server">
+    ```bash
+    underpost start dd-dev development --run
+    ```
+  </Step>
+</Steps>
+
+### Production Build
+
+<Steps>
+  <Step title="Build production bundle">
+    ```bash
+    underpost start dd-production production --build
+    ```
+  </Step>
+  
+  <Step title="Verify build output">
+    ```bash
+    ls -la ./build/dd-production/
+    ```
+  </Step>
+  
+  <Step title="Deploy to cluster">
+    ```bash
+    underpost deploy dd-production production
+    ```
+  </Step>
+</Steps>
+
+### Multi-Host Build
+
+```bash
+# Build for specific hosts only
+node bin/deploy build-full-client dd-production "" "api.example.com,cdn.example.com"
+```
+
+### Replica Build
+
+```bash
+# Create blue-green deployment replicas
+node bin/deploy build-single-replica dd-production example.com /app
+
+# This creates:
+# - ./engine-private/replica/dd-production-blue/
+# - ./engine-private/replica/dd-production-green/
+```
+
+## Build Optimization
+
+### Minification
+
+Production builds automatically enable minification:
+- JavaScript minification
+- CSS minification
+- Asset optimization
+- Source map generation
+
+### Lite Build Mode
+
+Reduce bundle size for specific deployments:
+
+```json
+{
+  "example.com": {
+    "/lite": {
+      "liteBuild": true
+    }
+  }
+}
+```
+
+### Caching
+
+Optimize rebuild times:
+- Dependency caching with `--underpost-quickly-install`
+- Incremental builds (only changed files)
+- Build artifact reuse
+
+## Error Handling
+
+### Common Build Errors
+
+**Missing dependencies:**
+```bash
+# Solution: Install dependencies first
+npm install
+```
+
+**Configuration not found:**
+```bash
+# Solution: Create deployment configuration
+underpost new --deploy-id dd-default
+```
+
+**Build permission errors:**
+```bash
+# Solution: Check directory permissions
+sudo chown -R $USER:$USER ./build
+```
+
+## Environment-Specific Builds
+
+Builds adapt based on `NODE_ENV`:
+
+**Development:**
+- No minification
+- Source maps enabled
+- Debug logging
+- Fast rebuild times
+
+**Production:**
+- Full minification
+- Optimized bundles
+- Error tracking
+- Performance monitoring
+
+## Related Commands
+
+- [underpost start](/cli/commands/start) - Start servers with build option
+- [underpost new](/cli/commands/new) - Create build configurations
+- [underpost deploy](/cli/commands/deploy) - Deploy built artifacts

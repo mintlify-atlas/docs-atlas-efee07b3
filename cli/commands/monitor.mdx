@@ -1,0 +1,231 @@
+---
+title: 'underpost monitor'
+description: 'Manage health monitoring and traffic switching for deployments'
+---
+
+## Overview
+
+The `underpost monitor` command manages health server monitoring for deployments, including automated traffic switching, health checks, and deployment readiness monitoring.
+
+## Usage
+
+```bash
+underpost monitor <deploy-id> [env] [options]
+```
+
+## Arguments
+
+<ParamField path="deploy-id" type="string" required>
+  The deployment configuration ID to monitor
+</ParamField>
+
+<ParamField path="env" type="string" default="development">
+  The environment to monitor (e.g., `development`, `production`)
+</ParamField>
+
+## Options
+
+### Execution Control
+
+<ParamField path="--now" type="boolean">
+  Executes the monitor script immediately
+</ParamField>
+
+<ParamField path="--single" type="boolean">
+  Disables recurrence, running the monitor script only once
+</ParamField>
+
+<ParamField path="--ms-interval" type="number" default="60250">
+  Sets a custom millisecond interval for monitoring checks (default: 60.25 seconds)
+</ParamField>
+
+### Deployment Configuration
+
+<ParamField path="--type" type="string">
+  Sets a custom monitor type (e.g., `blue-green`, `remote`)
+</ParamField>
+
+<ParamField path="--replicas" type="number" default="1">
+  Sets a custom number of replicas for monitoring
+</ParamField>
+
+<ParamField path="--versions" type="string">
+  Specifies the deployment versions to monitor (e.g., `blue,green`, `green`)
+</ParamField>
+
+### Traffic Management
+
+<ParamField path="--sync" type="boolean">
+  Synchronizes with current proxy deployments and traffic configurations
+</ParamField>
+
+<ParamField path="--promote" type="boolean">
+  Promotes the deployment after monitoring
+</ParamField>
+
+<ParamField path="--ready-deployment" type="boolean">
+  Run in ready deployment monitor mode
+</ParamField>
+
+### Kubernetes Configuration
+
+<ParamField path="--namespace" type="string" default="default">
+  Sets the Kubernetes namespace for the deployment
+</ParamField>
+
+### HTTPProxy Timeouts
+
+<ParamField path="--timeout-response" type="string">
+  Sets HTTPProxy per-route response timeout (e.g., `5s`, `300ms`, `infinity`)
+</ParamField>
+
+<ParamField path="--timeout-idle" type="string">
+  Sets HTTPProxy per-route idle timeout (e.g., `10s`, `infinity`)
+</ParamField>
+
+<ParamField path="--retry-count" type="number">
+  Sets HTTPProxy per-route retry count (e.g., `3`)
+</ParamField>
+
+<ParamField path="--retry-per-try-timeout" type="string">
+  Sets HTTPProxy retry per-try timeout (e.g., `150ms`)
+</ParamField>
+
+### Advanced Options
+
+<ParamField path="--disable-private-conf-update" type="boolean">
+  Disables updates to private configuration during execution
+</ParamField>
+
+## Examples
+
+### Basic Health Check
+
+```bash
+underpost monitor default development --now --single
+```
+
+Runs a single immediate health check for the default deployment.
+
+### Continuous Monitoring
+
+```bash
+underpost monitor default production --ms-interval 30000
+```
+
+Monitors the production deployment every 30 seconds.
+
+### Blue-Green Traffic Switching
+
+```bash
+underpost monitor default production --sync --type blue-green
+```
+
+Monitors production deployment with automatic blue-green traffic switching.
+
+### Monitor Specific Version
+
+```bash
+underpost monitor default production --versions green --ready-deployment --promote
+```
+
+Monitors the green version, waits for readiness, then promotes it.
+
+### Monitor with Custom Namespace
+
+```bash
+underpost monitor default production --namespace staging
+```
+
+Monitors deployment in the staging namespace.
+
+### Monitor Multiple Deployments
+
+```bash
+underpost monitor dd production --sync
+```
+
+Monitors all deployments listed in `dd.router` file.
+
+## Health Check Endpoints
+
+The monitor checks the following endpoints:
+
+```
+http://<host><path>     # Development
+https://<host><path>    # Production
+```
+
+Excluded paths:
+- Paths matching `peer`
+- Paths matching `socket`
+
+## Error Accumulation
+
+The monitor tracks errors over a 5-minute window:
+
+- Errors with status `404` are ignored
+- Other errors accumulate in the error payload
+- When errors reach `maxAttempts`, traffic is automatically switched
+- `maxAttempts` is calculated as: `(number_of_instances * 2.5)`
+
+## Traffic Switching
+
+When monitoring detects issues:
+
+<Steps>
+  <Step title="Error Detection">
+    Errors accumulate over monitoring intervals.
+  </Step>
+  
+  <Step title="Threshold Reached">
+    When error count reaches maximum attempts, automatic recovery begins.
+  </Step>
+  
+  <Step title="Rollout Restart">
+    The current deployment is restarted:
+    ```bash
+    kubectl rollout restart deployment/<deploy-id>-<env>-<traffic>
+    ```
+  </Step>
+  
+  <Step title="Traffic Switch">
+    Traffic is switched to the alternate version (blue → green or green → blue).
+  </Step>
+  
+  <Step title="HTTPProxy Update">
+    HTTPProxy resources are deleted and recreated for the new traffic target.
+  </Step>
+</Steps>
+
+## Control Commands
+
+Control the monitor using environment variables:
+
+```bash
+# Pause monitoring
+underpost config set <deploy-id>-<env>-monitor-input pause
+
+# Resume monitoring (delete pause)
+underpost config delete <deploy-id>-<env>-monitor-input
+
+# Stop monitoring
+underpost config set <deploy-id>-<env>-monitor-input stop
+
+# Restart monitoring
+underpost config set <deploy-id>-<env>-monitor-input restart
+
+# Manual traffic switch
+underpost config set <deploy-id>-<env>-monitor-input blue-green-switch
+
+# Set custom interval
+underpost config set <deploy-id>-<env>-monitor-ms 30000
+```
+
+## Notes
+
+- Default check interval is 60.25 seconds to avoid minute boundaries
+- Monitor skips checks when no internet connection is detected
+- In development mode, `/etc/hosts` entries are rendered for routing
+- Error payloads older than 5 minutes are automatically discarded
+- Use `--ready-deployment` for deployment readiness checks before promotion

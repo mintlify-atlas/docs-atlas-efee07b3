@@ -1,0 +1,455 @@
+---
+title: underpost cluster
+description: Initialize and manage Kubernetes clusters with optional component deployments
+---
+
+Manages Kubernetes cluster initialization, configuration, and component deployments. Supports Kind, Kubeadm, and K3s cluster types.
+
+## Usage
+
+```bash
+underpost cluster [pod-name] [options]
+```
+
+## Arguments
+
+<ParamField path="pod-name" type="string">
+  Optional name of a pod for specific operations (e.g., filtering information by pod name).
+</ParamField>
+
+## Options
+
+### Cluster Type
+
+<ParamField path="--kubeadm" type="boolean">
+  Initialize the cluster using kubeadm for control plane management.
+</ParamField>
+
+<ParamField path="--k3s" type="boolean">
+  Initialize the cluster using K3s (Lightweight Kubernetes).
+</ParamField>
+
+<ParamField path="--dev" type="boolean">
+  Initializes a development-specific cluster configuration.
+</ParamField>
+
+### Cluster Operations
+
+<ParamField path="--reset" type="boolean">
+  Deletes all clusters and prunes all related data and caches.
+</ParamField>
+
+<ParamField path="--init-host" type="boolean">
+  Installs necessary Kubernetes node CLI tools (e.g., kind, kubeadm, docker, podman, helm).
+</ParamField>
+
+<ParamField path="--uninstall-host" type="boolean">
+  Uninstalls all host components installed by init-host.
+</ParamField>
+
+<ParamField path="--config" type="boolean">
+  Sets the base Kubernetes node configuration (SELinux, containerd, sysctl settings).
+</ParamField>
+
+<ParamField path="--chown" type="boolean">
+  Sets the appropriate ownership for Kubernetes kubeconfig files.
+</ParamField>
+
+### Database Services
+
+<ParamField path="--mariadb" type="boolean">
+  Initializes the cluster with a MariaDB statefulset.
+</ParamField>
+
+<ParamField path="--mysql" type="boolean">
+  Initializes the cluster with a MySQL statefulset.
+</ParamField>
+
+<ParamField path="--mongodb" type="boolean">
+  Initializes the cluster with a MongoDB statefulset.
+</ParamField>
+
+<ParamField path="--mongo-db-host" type="string">
+  Set custom mongo db host for replica set initialization.
+</ParamField>
+
+<ParamField path="--mongodb4" type="boolean">
+  Initializes the cluster with a MongoDB 4.4 service.
+</ParamField>
+
+<ParamField path="--postgresql" type="boolean">
+  Initializes the cluster with a PostgreSQL statefulset.
+</ParamField>
+
+### Additional Services
+
+<ParamField path="--valkey" type="boolean">
+  Initializes the cluster with a Valkey service (Redis alternative).
+</ParamField>
+
+<ParamField path="--ipfs" type="boolean">
+  Initializes the cluster with an ipfs-cluster statefulset.
+</ParamField>
+
+### Networking & Ingress
+
+<ParamField path="--contour" type="boolean">
+  Initializes the cluster with Project Contour base HTTPProxy and Envoy.
+</ParamField>
+
+<ParamField path="--cert-manager" type="boolean">
+  Initializes the cluster with a Let's Encrypt production ClusterIssuer.
+</ParamField>
+
+### Monitoring
+
+<ParamField path="--grafana" type="boolean">
+  Initializes the cluster with a Grafana deployment.
+</ParamField>
+
+<ParamField path="--prom" type="string">
+  Initializes the cluster with a Prometheus Operator deployment and monitor scrap for specified hosts (comma-separated).
+</ParamField>
+
+### GPU Support
+
+<ParamField path="--dedicated-gpu" type="boolean">
+  Initializes the cluster with dedicated GPU base resources and environment settings.
+</ParamField>
+
+### Kubeadm Options
+
+<ParamField path="--pod-network-cidr" type="string">
+  Sets custom pod network CIDR for kubeadm cluster initialization (defaults to "192.168.0.0/16").
+</ParamField>
+
+<ParamField path="--control-plane-endpoint" type="string">
+  Sets custom control plane endpoint for kubeadm cluster initialization (defaults to "localhost:6443").
+</ParamField>
+
+### Kubernetes Context
+
+<ParamField path="--ns-use" type="string">
+  Switches the current Kubernetes context to the specified namespace (creates if it doesn't exist).
+</ParamField>
+
+<ParamField path="--namespace" type="string">
+  Kubernetes namespace for cluster operations (defaults to "default").
+</ParamField>
+
+### Information & Utilities
+
+<ParamField path="--list-pods" type="boolean">
+  Displays detailed information about all pods.
+</ParamField>
+
+<ParamField path="--pull-image" type="boolean">
+  Sets an optional associated image to pull during initialization.
+</ParamField>
+
+### Advanced Options
+
+<ParamField path="--hosts" type="string">
+  A comma-separated list of cluster hostnames or IP addresses.
+</ParamField>
+
+<ParamField path="--remove-volume-host-paths" type="boolean">
+  Removes specified volume host paths after execution.
+</ParamField>
+
+<ParamField path="--replicas" type="string">
+  Sets a custom number of replicas for statefulset deployments.
+</ParamField>
+
+## Examples
+
+### Initialize Kind Cluster
+
+```bash
+underpost cluster
+```
+
+Initializes a default Kind cluster for local development.
+
+### Initialize Kubeadm Cluster
+
+```bash
+underpost cluster --kubeadm
+```
+
+Sets up a production-ready Kubeadm cluster with Calico CNI.
+
+### Initialize K3s Cluster
+
+```bash
+underpost cluster --k3s
+```
+
+Installs and configures a lightweight K3s cluster.
+
+### Install Host Prerequisites
+
+```bash
+underpost cluster --init-host
+```
+
+Installs Docker, Podman, Kind, Kubeadm, Kubectl, and Helm.
+
+### Initialize with MongoDB
+
+```bash
+underpost cluster --mongodb
+```
+
+Creates a MongoDB StatefulSet with replica set configuration.
+
+### Initialize with Contour Ingress
+
+```bash
+underpost cluster --contour --cert-manager
+```
+
+Deploys Contour ingress controller with cert-manager for TLS.
+
+### Initialize with Monitoring Stack
+
+```bash
+underpost cluster --grafana --prom "api.example.com:9090,app.example.com:9090"
+```
+
+Deploys Grafana and Prometheus with custom scrape targets.
+
+### Custom Kubeadm Network
+
+```bash
+underpost cluster --kubeadm \
+  --pod-network-cidr 10.244.0.0/16 \
+  --control-plane-endpoint mynode.local:6443
+```
+
+Initializes Kubeadm with custom networking configuration.
+
+### Switch Namespace
+
+```bash
+underpost cluster --ns-use production
+```
+
+Switches kubectl context to the production namespace.
+
+### List All Pods
+
+```bash
+underpost cluster --list-pods
+```
+
+Displays a table of all pods across all namespaces.
+
+### Reset Cluster
+
+```bash
+underpost cluster --reset --remove-volume-host-paths
+```
+
+Completely resets the cluster and removes all persistent volume data.
+
+## Cluster Types
+
+### Kind (Default)
+
+Kubernetes in Docker - ideal for local development:
+- Runs Kubernetes inside Docker containers
+- Fast cluster creation and deletion
+- Supports multi-node clusters
+- Perfect for CI/CD pipelines
+
+```bash
+underpost cluster
+```
+
+### Kubeadm
+
+Production-ready Kubernetes clusters:
+- Full control plane initialization
+- Calico CNI for networking
+- Local-path-provisioner for dynamic PVCs
+- Control plane untainted for single-node deployments
+
+```bash
+underpost cluster --kubeadm
+```
+
+### K3s
+
+Lightweight Kubernetes for edge and IoT:
+- Single binary installation
+- Built-in load balancer (Klipper)
+- Minimal resource footprint
+- SQLite by default (PostgreSQL optional)
+
+```bash
+underpost cluster --k3s
+```
+
+## Initialization Workflow
+
+<Steps>
+  <Step title="Install Prerequisites">
+    Install required tools on the host system.
+    
+    ```bash
+    underpost cluster --init-host
+    ```
+    
+    Installs: Docker, Podman, Kind, Kubeadm, Kubectl, Helm
+  </Step>
+  
+  <Step title="Configure Host">
+    Apply system-level configuration for Kubernetes.
+    
+    ```bash
+    underpost cluster --config
+    ```
+    
+    Configures:
+    - SELinux (permissive mode)
+    - Containerd with SystemdCgroup
+    - Sysctl for bridge networking
+    - Disables swap
+    - Firewall rules
+  </Step>
+  
+  <Step title="Initialize Cluster">
+    Create the Kubernetes cluster.
+    
+    ```bash
+    underpost cluster --kubeadm
+    ```
+    
+    For Kind or K3s, use respective flags.
+  </Step>
+  
+  <Step title="Deploy Components">
+    Add optional services and components.
+    
+    ```bash
+    underpost cluster --mongodb --contour --cert-manager
+    ```
+  </Step>
+</Steps>
+
+## Database Deployments
+
+### MongoDB with Replica Set
+
+```bash
+underpost cluster --mongodb --mongo-db-host "mongodb-0.mongodb-service,mongodb-1.mongodb-service"
+```
+
+Deploys MongoDB StatefulSet and initializes replica set:
+- Creates persistent volumes
+- Configures authentication
+- Initializes replica set members
+- Waits for pods to be ready
+
+### MariaDB StatefulSet
+
+```bash
+underpost cluster --mariadb
+```
+
+Deploys MariaDB with:
+- Secret-based authentication
+- Persistent storage
+- StatefulSet for data consistency
+
+### PostgreSQL
+
+```bash
+underpost cluster --postgresql
+```
+
+Deploys PostgreSQL with persistent volumes and secrets.
+
+## Networking Components
+
+### Contour Ingress Controller
+
+```bash
+underpost cluster --contour
+```
+
+Deploys Project Contour for HTTPProxy-based ingress routing.
+
+### Cert-Manager
+
+```bash
+underpost cluster --cert-manager
+```
+
+Installs cert-manager with Let's Encrypt ClusterIssuer for automatic TLS certificates.
+
+## GPU Support
+
+```bash
+underpost cluster --dedicated-gpu
+```
+
+Deploys:
+- NVIDIA GPU Operator
+- Kubeflow Spark Operator
+- GPU resource configurations
+
+## Host Configuration
+
+The `--config` option applies essential system settings:
+
+- **SELinux**: Sets to permissive mode
+- **Containerd**: Enables SystemdCgroup and disables SELinux for runtime
+- **Swap**: Disables swap (required by Kubernetes)
+- **Networking**: Enables bridge-nf-call-iptables for CNI
+- **Firewall**: Disables firewalld to prevent network conflicts
+- **Inotify**: Increases file watch limits
+
+## Reset Operations
+
+The `--reset` flag performs a comprehensive cluster cleanup:
+
+<Steps>
+  <Step title="Truncate Logs">
+    Cleans up large log files in `/var/log`.
+  </Step>
+  
+  <Step title="Clean PersistentVolumes">
+    Removes data from hostPath PersistentVolumes (if `--remove-volume-host-paths` is set).
+  </Step>
+  
+  <Step title="Fix SELinux">
+    Restores SELinux contexts for container directories.
+  </Step>
+  
+  <Step title="Uninstall Cluster">
+    Executes cluster-specific uninstallation:
+    - Kind: `kind delete cluster`
+    - Kubeadm: `kubeadm reset --force`
+    - K3s: `/usr/local/bin/k3s-uninstall.sh`
+  </Step>
+  
+  <Step title="Cleanup Filesystem">
+    Removes configuration and data directories:
+    - `/etc/kubernetes`
+    - `/var/lib/kubelet`
+    - `/var/lib/containerd`
+    - `~/.kube`
+  </Step>
+  
+  <Step title="Reset Network">
+    Cleans iptables rules and removes CNI interfaces.
+  </Step>
+</Steps>
+
+## Related Commands
+
+- [`underpost deploy`](/cli/commands/deploy) - Deploy applications to the cluster
+- [`underpost image`](/cli/commands/image) - Manage container images for the cluster
+- [`underpost db`](/cli/commands/db) - Database backup and restore operations

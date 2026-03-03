@@ -1,0 +1,154 @@
+---
+title: 'underpost fs'
+description: 'Manage file storage operations using Cloudinary'
+---
+
+## Overview
+
+The `underpost fs` command manages file storage operations using Cloudinary, including upload, download, deletion, and recursive operations with Git integration.
+
+## Usage
+
+```bash
+underpost fs [path] [options]
+```
+
+## Arguments
+
+<ParamField path="path" type="string">
+  The absolute or relative directory path for file operations
+</ParamField>
+
+## Options
+
+### File Operations
+
+<ParamField path="--rm" type="boolean">
+  Removes the specified file from Cloudinary storage
+</ParamField>
+
+<ParamField path="--pull" type="boolean">
+  Downloads the specified file from Cloudinary storage
+</ParamField>
+
+<ParamField path="--recursive" type="boolean">
+  Uploads files recursively from the specified path
+</ParamField>
+
+<ParamField path="--force" type="boolean">
+  Forces the action, overriding any warnings or conflicts
+</ParamField>
+
+### Configuration
+
+<ParamField path="--deploy-id" type="string">
+  Specifies the deployment configuration ID for file operations
+</ParamField>
+
+<ParamField path="--storage-file-path" type="string">
+  Specifies a custom file storage path for the configuration file
+</ParamField>
+
+### Git Integration
+
+<ParamField path="--git" type="boolean">
+  Displays current Git changes related to file storage and commits changes after upload
+</ParamField>
+
+## Examples
+
+### Upload Single File
+
+```bash
+underpost fs ./static/image.png --deploy-id default
+```
+
+Uploads a single file to Cloudinary.
+
+### Upload Directory Recursively
+
+```bash
+underpost fs ./static --recursive --deploy-id default
+```
+
+Uploads all files in the directory recursively.
+
+### Upload with Git Integration
+
+```bash
+underpost fs ./assets --recursive --git --deploy-id default
+```
+
+Uploads changed files tracked by Git and commits the changes.
+
+### Download File
+
+```bash
+underpost fs ./static/image.png --pull --deploy-id default
+```
+
+Downloads a file from Cloudinary storage.
+
+### Force Download (Overwrite)
+
+```bash
+underpost fs ./static --pull --force --deploy-id default
+```
+
+Force downloads all files, overwriting existing local files.
+
+### Delete File
+
+```bash
+underpost fs ./static/image.png --rm --deploy-id default
+```
+
+Removes a file from Cloudinary storage.
+
+## Configuration
+
+The command requires Cloudinary credentials in your environment:
+
+```bash
+CLOUDINARY_CLOUD_NAME=your_cloud_name
+CLOUDINARY_API_KEY=your_api_key
+CLOUDINARY_API_SECRET=your_api_secret
+```
+
+## Storage Configuration File
+
+The command maintains a storage configuration file at:
+
+```
+./engine-private/conf/<deploy-id>/storage.json
+```
+
+This file tracks uploaded files and their metadata.
+
+## Workflow Steps
+
+<Steps>
+  <Step title="Configure Cloudinary">
+    Set up Cloudinary credentials in your environment variables.
+  </Step>
+  
+  <Step title="Upload Files">
+    Use `--recursive` to upload multiple files or single file path for individual uploads.
+  </Step>
+  
+  <Step title="Track Changes">
+    Use `--git` to automatically commit file storage changes to version control.
+  </Step>
+  
+  <Step title="Download When Needed">
+    Use `--pull` to download files from Cloudinary to local filesystem.
+  </Step>
+</Steps>
+
+## Notes
+
+- Files are stored using their full path as the public ID in Cloudinary
+- The `--git` option automatically stages and commits changes
+- Storage configuration is deployment-specific when using `--deploy-id`
+- Files are zipped during transfer for efficient storage
+- Use `--force` with caution as it overwrites existing files/uploads

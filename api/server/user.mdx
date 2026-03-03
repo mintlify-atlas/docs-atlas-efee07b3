@@ -1,0 +1,668 @@
+---
+title: User API
+description: User authentication, management, and profile operations
+---
+
+The User API handles authentication, user account management, profile updates, and password recovery.
+
+## Authentication
+
+Most User API endpoints require JWT authentication. Public endpoints include user creation, login, and password recovery.
+
+## Endpoints
+
+### Create User
+
+Register a new user account.
+
+```http
+POST /api/user
+```
+
+<ParamField body="email" type="string" required>
+  Valid email address
+</ParamField>
+
+<ParamField body="username" type="string" required>
+  Username (2-20 alphanumeric characters, hyphens, underscores)
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  User password
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/user', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: 'user@example.com',
+    username: 'johndoe',
+    password: 'SecurePass123!'
+  })
+});
+
+const { data } = await response.json();
+```
+
+#### Response
+
+<ResponseField name="status" type="string">
+  "success" or "error"
+</ResponseField>
+
+<ResponseField name="data.token" type="string">
+  JWT authentication token
+</ResponseField>
+
+<ResponseField name="data.user" type="object">
+  User object with selected fields
+</ResponseField>
+
+```json
+{
+  "status": "success",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "_id": "507f1f77bcf86cd799439011",
+      "username": "johndoe",
+      "email": "user@example.com",
+      "role": "guest",
+      "emailConfirmed": false,
+      "profileImageId": null,
+      "publicProfile": false,
+      "briefDescription": "Uploader",
+      "createdAt": "2024-01-15T10:30:00.000Z",
+      "updatedAt": "2024-01-15T10:30:00.000Z"
+    }
+  }
+}
+```
+
+### User Login
+
+Authenticate and get a JWT token.
+
+```http
+POST /api/user/auth
+```
+
+<ParamField body="email" type="string" required>
+  User's email address
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  User's password
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/user/auth', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: 'user@example.com',
+    password: 'SecurePass123!'
+  })
+});
+
+const { data } = await response.json();
+const token = data.token;
+```
+
+#### Response
+
+<ResponseField name="data.token" type="string">
+  JWT token for authenticated requests
+</ResponseField>
+
+<ResponseField name="data.user" type="object">
+  Authenticated user data
+</ResponseField>
+
+```json
+{
+  "status": "success",
+  "data": {
+    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+    "user": {
+      "_id": "507f1f77bcf86cd799439011",
+      "username": "johndoe",
+      "email": "user@example.com",
+      "role": "user",
+      "emailConfirmed": true,
+      "profileImageId": "507f1f77bcf86cd799439012",
+      "publicProfile": true,
+      "briefDescription": "Content creator",
+      "createdAt": "2024-01-15T10:30:00.000Z",
+      "updatedAt": "2024-01-15T10:30:00.000Z"
+    }
+  }
+}
+```
+
+<Warning>
+After 5 failed login attempts, the account is locked for 15 minutes.
+</Warning>
+
+### Guest User
+
+Create a temporary guest user session.
+
+```http
+POST /api/user/guest
+```
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/user/guest', {
+  method: 'POST'
+});
+
+const { data } = await response.json();
+```
+
+#### Response
+
+<ResponseField name="data.token" type="string">
+  Guest JWT token with limited permissions
+</ResponseField>
+
+<ResponseField name="data.user" type="object">
+  Guest user object stored in Valkey cache
+</ResponseField>
+
+### Get User by ID
+
+Retrieve user information by ID.
+
+```http
+GET /api/user/:id
+```
+
+**Authentication Required**
+
+<ParamField path="id" type="string" required>
+  User ID
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/user/507f1f77bcf86cd799439011', {
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
+
+const { data } = await response.json();
+```
+
+#### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "507f1f77bcf86cd799439011",
+    "username": "johndoe",
+    "email": "user@example.com",
+    "role": "user",
+    "emailConfirmed": true,
+    "profileImageId": "507f1f77bcf86cd799439012",
+    "publicProfile": true,
+    "briefDescription": "Content creator",
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "updatedAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+```
+
+### Get All Users (Admin)
+
+Retrieve paginated list of all users (admin only).
+
+```http
+GET /api/user/all?page=1&limit=10&sort=-updatedAt
+```
+
+**Admin Authentication Required**
+
+<ParamField query="page" type="number" optional>
+  Page number (default: 1)
+</ParamField>
+
+<ParamField query="limit" type="number" optional>
+  Results per page (default: 10)
+</ParamField>
+
+<ParamField query="sort" type="string" optional>
+  Sort field (prefix with `-` for descending)
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/user/all?page=1&limit=10&sort=-createdAt', {
+  headers: {
+    'Authorization': `Bearer ${adminToken}`
+  }
+});
+
+const { data } = await response.json();
+```
+
+#### Response
+
+<ResponseField name="data.data" type="array">
+  Array of user objects
+</ResponseField>
+
+<ResponseField name="data.page" type="number">
+  Current page number
+</ResponseField>
+
+<ResponseField name="data.limit" type="number">
+  Results per page
+</ResponseField>
+
+<ResponseField name="data.total" type="number">
+  Total user count
+</ResponseField>
+
+<ResponseField name="data.totalPages" type="number">
+  Total number of pages
+</ResponseField>
+
+```json
+{
+  "status": "success",
+  "data": {
+    "data": [
+      {
+        "_id": "507f1f77bcf86cd799439011",
+        "username": "johndoe",
+        "email": "user@example.com",
+        "role": "user"
+      }
+    ],
+    "page": 1,
+    "limit": 10,
+    "total": 42,
+    "totalPages": 5
+  }
+}
+```
+
+### Get Public Profile
+
+Retrieve a user's public profile by username.
+
+```http
+GET /api/user/u/:username
+```
+
+<ParamField path="username" type="string" required>
+  Username to look up
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/user/u/johndoe');
+const { data } = await response.json();
+```
+
+#### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "507f1f77bcf86cd799439011",
+    "username": "johndoe",
+    "profileImageId": "507f1f77bcf86cd799439012",
+    "publicProfile": true,
+    "briefDescription": "Content creator",
+    "createdAt": "2024-01-15T10:30:00.000Z",
+    "updatedAt": "2024-01-15T10:30:00.000Z"
+  }
+}
+```
+
+<Note>
+Only returns data if user has `publicProfile: true`
+</Note>
+
+### Update User
+
+Update user profile information.
+
+```http
+PUT /api/user/:id
+```
+
+**Authentication Required**
+
+<ParamField path="id" type="string" required>
+  User ID (must match authenticated user)
+</ParamField>
+
+<ParamField body="username" type="string" optional>
+  New username
+</ParamField>
+
+<ParamField body="email" type="string" optional>
+  New email (only if email not confirmed)
+</ParamField>
+
+<ParamField body="publicProfile" type="boolean" optional>
+  Enable/disable public profile
+</ParamField>
+
+<ParamField body="briefDescription" type="string" optional>
+  Profile bio/description
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/user/507f1f77bcf86cd799439011', {
+  method: 'PUT',
+  headers: {
+    'Authorization': `Bearer ${token}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    username: 'johndoe_updated',
+    publicProfile: true,
+    briefDescription: 'Tech enthusiast'
+  })
+});
+
+const { data } = await response.json();
+```
+
+#### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "507f1f77bcf86cd799439011",
+    "username": "johndoe_updated",
+    "email": "user@example.com",
+    "role": "user",
+    "emailConfirmed": true,
+    "publicProfile": true,
+    "briefDescription": "Tech enthusiast"
+  }
+}
+```
+
+### Update Profile Image
+
+Upload or update user profile image.
+
+```http
+PUT /api/user/profile-image/:id
+```
+
+**Authentication Required**
+
+<ParamField path="id" type="string" required>
+  User ID (must match authenticated user)
+</ParamField>
+
+<ParamField body="file" type="file" required>
+  Image file (multipart/form-data)
+</ParamField>
+
+#### Example Request
+
+```javascript
+const formData = new FormData();
+formData.append('file', imageFile);
+
+const response = await fetch('/api/user/profile-image/507f1f77bcf86cd799439011', {
+  method: 'PUT',
+  headers: {
+    'Authorization': `Bearer ${token}`
+  },
+  body: formData
+});
+
+const { data } = await response.json();
+```
+
+#### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "507f1f77bcf86cd799439011",
+    "username": "johndoe",
+    "profileImageId": "507f1f77bcf86cd799439013"
+  }
+}
+```
+
+<Note>
+Old profile images are automatically deleted when replaced.
+</Note>
+
+### Delete User
+
+Delete user account.
+
+```http
+DELETE /api/user/:id
+```
+
+**Authentication Required**
+
+<ParamField path="id" type="string" required>
+  User ID (must match authenticated user, unless admin)
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/user/507f1f77bcf86cd799439011', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
+
+const { data } = await response.json();
+```
+
+#### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "507f1f77bcf86cd799439011",
+    "username": "johndoe",
+    "email": "user@example.com"
+  }
+}
+```
+
+### Logout
+
+Invalidate current session.
+
+```http
+DELETE /api/user/logout
+```
+
+**Authentication Required**
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/user/logout', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': `Bearer ${token}`
+  }
+});
+
+const { data } = await response.json();
+```
+
+#### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "Logged out successfully"
+  }
+}
+```
+
+### Password Recovery - Request Email
+
+Send password recovery email.
+
+```http
+POST /api/user/recover-verify-email
+```
+
+<ParamField body="email" type="string" required>
+  User's email address
+</ParamField>
+
+<ParamField body="hostname" type="string" required>
+  Client hostname for recovery link
+</ParamField>
+
+<ParamField body="proxyPath" type="string" required>
+  Proxy path for recovery URL
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/user/recover-verify-email', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    email: 'user@example.com',
+    hostname: 'app.example.com',
+    proxyPath: '/'
+  })
+});
+
+const { data } = await response.json();
+```
+
+#### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "message": "email send successfully"
+  }
+}
+```
+
+<Note>
+Always returns success to prevent email enumeration attacks, even if email doesn't exist.
+</Note>
+
+### Password Recovery - Reset Password
+
+Reset password using recovery token.
+
+```http
+PUT /api/user/recover/:token
+```
+
+<ParamField path="token" type="string" required>
+  JWT recovery token from email
+</ParamField>
+
+<ParamField body="password" type="string" required>
+  New password
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/user/recover/eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...', {
+  method: 'PUT',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    password: 'NewSecurePass123!'
+  })
+});
+
+const { data } = await response.json();
+```
+
+#### Response
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "507f1f77bcf86cd799439011",
+    "username": "johndoe",
+    "email": "user@example.com"
+  }
+}
+```
+
+<Warning>
+Recovery tokens expire after 15 minutes.
+</Warning>
+
+## User Model
+
+The User schema includes:
+
+**Fields**
+- `email` - Unique email address (validated)
+- `username` - Unique username (2-20 alphanumeric, hyphens, underscores)
+- `password` - Hashed password
+- `role` - User role (guest, user, admin, moderator)
+- `emailConfirmed` - Email verification status
+- `publicProfile` - Public profile visibility
+- `briefDescription` - User bio
+- `profileImageId` - Reference to File model
+- `activeSessions` - Array of active JWT sessions
+- `phoneNumbers` - Array of phone numbers
+- `publicKey` - Array of crypto keys
+- `failedLoginAttempts` - Failed login counter
+- `lastLoginDate` - Last successful login timestamp
+
+## Implementation Details
+
+**Router** (`src/api/user/user.router.js`)
+- Handles 20+ endpoints for user operations
+- Auto-creates default admin user on startup
+- Swagger documentation annotations
+
+**Service** (`src/api/user/user.service.js`)
+- Authentication with bcrypt password hashing
+- JWT session management
+- Email verification via MailerProvider
+- Guest user support with Valkey cache
+- Account lockout after failed attempts
+
+**Model** (`src/api/user/user.model.js`)
+- Mongoose schema with validators
+- UserDto for response transformation
+- Session tracking with token hashing

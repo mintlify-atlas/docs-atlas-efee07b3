@@ -1,0 +1,220 @@
+---
+title: 'underpost db'
+description: 'Manage database import/export operations for MariaDB and MongoDB'
+---
+
+## Overview
+
+The `underpost db` command manages database operations including import/export, backups, and Git integration for MariaDB and MongoDB databases in Kubernetes deployments.
+
+## Usage
+
+```bash
+underpost db [deploy-list] [options]
+```
+
+## Arguments
+
+<ParamField path="deploy-list" type="string" default="default">
+  Comma-separated list of deployment IDs (e.g., `default-a,default-b`)
+</ParamField>
+
+## Options
+
+### Import/Export Operations
+
+<ParamField path="--import" type="boolean">
+  Imports container backups from specified repositories
+</ParamField>
+
+<ParamField path="--export" type="boolean">
+  Exports container backups to specified repositories
+</ParamField>
+
+### Pod Selection
+
+<ParamField path="--pod-name" type="string">
+  Comma-separated list of pod names or patterns (supports wildcards like `mariadb-*`)
+</ParamField>
+
+<ParamField path="--all-pods" type="boolean">
+  Target all matching pods instead of just the first one
+</ParamField>
+
+<ParamField path="--primary-pod" type="boolean">
+  Automatically detect and use MongoDB primary pod (MongoDB only)
+</ParamField>
+
+<ParamField path="--primary-pod-ensure" type="string">
+  Ensure setup of MongoDB replica set primary pod before operations
+</ParamField>
+
+### Database Operations
+
+<ParamField path="--stats" type="boolean">
+  Display database statistics (collection/table names with document/row counts)
+</ParamField>
+
+<ParamField path="--collections" type="string">
+  Comma-separated list of database collections to operate on
+</ParamField>
+
+<ParamField path="--drop" type="boolean">
+  Drops the specified databases or collections before importing
+</ParamField>
+
+<ParamField path="--preserveUUID" type="boolean">
+  Preserves UUIDs during database import operations
+</ParamField>
+
+### Path and Storage
+
+<ParamField path="--out-path" type="string">
+  Specifies a custom output path for backups
+</ParamField>
+
+<ParamField path="--hosts" type="string">
+  Comma-separated list of database hosts to filter operations
+</ParamField>
+
+<ParamField path="--paths" type="string">
+  Comma-separated list of paths to filter database operations
+</ParamField>
+
+### Git Integration
+
+<ParamField path="--git" type="boolean">
+  Enables Git integration for backup version control (clone, pull, commit, push to GitHub)
+</ParamField>
+
+<ParamField path="--force-clone" type="boolean">
+  Forces cloning of the Git repository, overwriting local changes
+</ParamField>
+
+<ParamField path="--macro-rollback-export" type="number">
+  Exports a macro rollback script that reverts the last n commits (Git integration required)
+</ParamField>
+
+### Cleanup Operations
+
+<ParamField path="--clean-fs-collection" type="boolean">
+  Cleans orphaned File documents from collections that are not referenced by any models
+</ParamField>
+
+<ParamField path="--clean-fs-dry-run" type="boolean">
+  Dry run mode - shows what would be deleted without actually deleting (use with `--clean-fs-collection`)
+</ParamField>
+
+### Cluster Configuration
+
+<ParamField path="--ns" type="string" default="default">
+  Kubernetes namespace context for database operations
+</ParamField>
+
+<ParamField path="--kubeadm" type="boolean">
+  Enables the kubeadm context for database operations
+</ParamField>
+
+<ParamField path="--kind" type="boolean">
+  Enables the kind context for database operations
+</ParamField>
+
+<ParamField path="--k3s" type="boolean">
+  Enables the k3s context for database operations
+</ParamField>
+
+<ParamField path="--dev" type="boolean">
+  Sets the development CLI context
+</ParamField>
+
+## Examples
+
+### Export MariaDB Database
+
+```bash
+underpost db default --export --pod-name mariadb-0
+```
+
+Exports the MariaDB database from the `mariadb-0` pod.
+
+### Import MongoDB with Git Integration
+
+```bash
+underpost db default --import --git --drop
+```
+
+Imports MongoDB database from Git backup repository, dropping existing data.
+
+### Export to Custom Path
+
+```bash
+underpost db default --export --out-path /backups/custom
+```
+
+Exports database to a custom output path.
+
+### Display Database Statistics
+
+```bash
+underpost db default --stats --pod-name mongodb-*
+```
+
+Shows collection statistics for all MongoDB pods.
+
+### Export All Pods with Git Backup
+
+```bash
+underpost db default --export --all-pods --git
+```
+
+Exports all matching database pods and commits to Git repository.
+
+### MongoDB Primary Pod Export
+
+```bash
+underpost db default --export --primary-pod
+```
+
+Automatically detects and exports from the MongoDB primary pod.
+
+## Database Commands
+
+### MariaDB Export Command
+
+Internally executes:
+
+```bash
+mariadb-dump --user=<user> --password=<password> --lock-tables <database> > /home/<database>.sql
+```
+
+### MariaDB Import Command
+
+Internally executes:
+
+```bash
+mariadb -u <user> -p<password> <database> < /<database>.sql
+```
+
+### MongoDB Export Command
+
+Internally executes:
+
+```bash
+mongodump -d <database> -o /
+```
+
+### MongoDB Import Command
+
+Internally executes:
+
+```bash
+mongorestore -d <database> /<database> [--drop] [--preserveUUID]
+```
+
+## Notes
+
+- Backups are automatically split into chunks if they exceed size limits
+- Git integration requires `GITHUB_USERNAME` environment variable
+- Maximum of 5 backup timestamps are retained per database
+- Use `--all-pods` carefully with import operations to avoid conflicts
+- MongoDB operations default to the primary pod unless `--all-pods` is specified

@@ -1,0 +1,204 @@
+---
+title: CLI Overview
+description: Comprehensive command-line interface for the Underpost framework
+---
+
+The Underpost CLI is a powerful tool for managing end-to-end continuous integration and continuous deployment across your application federation. It provides over 20 commands for developing, building, deploying, testing, monitoring, and managing multiple runtime applications on virtual machines or container instances.
+
+## What is Underpost CLI?
+
+Underpost CLI (v3.0.2) is a comprehensive command-line tool that enables:
+
+- Project scaffolding and initialization
+- Application server management
+- Kubernetes cluster operations
+- Database backup and restore
+- CI/CD pipeline automation
+- Container image management
+- SSH and remote server access
+- Monitoring and health checks
+
+## Core Features
+
+<CardGroup cols={2}>
+  <Card title="Project Management" icon="folder-tree">
+    Create new projects, manage configurations, and handle deployment workflows
+  </Card>
+  
+  <Card title="Kubernetes Integration" icon="dharmachakra">
+    Full cluster management with support for Kind, Kubeadm, and K3s
+  </Card>
+  
+  <Card title="Database Operations" icon="database">
+    Automated backup/restore for MariaDB and MongoDB with Git integration
+  </Card>
+  
+  <Card title="CI/CD Automation" icon="rocket">
+    Streamlined deployment pipelines with monitoring and rollback capabilities
+  </Card>
+</CardGroup>
+
+## Command Categories
+
+### Project & Repository Management
+
+- `new` - Initialize new Underpost projects or configurations
+- `clone` - Clone GitHub repositories
+- `pull` - Pull latest changes from repositories
+- `cmt` - Manage commits with conventional commit types
+- `push` - Push changes to remote repositories
+
+### Application Lifecycle
+
+- `start` - Start application servers and build pipelines
+- `deploy` - Manage Kubernetes deployments and services
+- `monitor` - Health monitoring for deployments
+- `test` - Run test suites
+- `static` - Build static pages and documentation
+
+### Infrastructure & Cluster
+
+- `cluster` - Manage Kubernetes clusters (Kind, Kubeadm, K3s)
+- `image` - Docker image building and management
+- `secret` - Manage platform secrets
+- `ssh` - SSH credential and session management
+- `lxd` - LXD virtual machine management
+- `baremetal` - Baremetal server operations
+
+### Database & Storage
+
+- `db` - Database import/export with Git integration
+- `metadata` - Cluster metadata operations
+- `fs` - File storage management
+
+### Utilities
+
+- `config` - Configuration management
+- `env` - Environment variable management
+- `cron` - Cron job execution and K8s CronJob manifests
+- `ip` - IP address management and firewall rules
+- `run` - Execute predefined scripts and runners
+- `root` - Display npm installation root path
+- `install` - Quickly import Underpost dependencies
+
+## Global Options
+
+```bash
+-V, --version    Output the version number
+-h, --help       Display help for command
+```
+
+## Command Structure
+
+All Underpost commands follow this pattern:
+
+```bash
+underpost [command] [arguments] [options]
+```
+
+### Examples
+
+<CodeGroup>
+```bash Create New Project
+underpost new my-app
+```
+
+```bash Start Development Server
+underpost start my-deploy development --run
+```
+
+```bash Deploy to Kubernetes
+underpost deploy my-app,api production
+```
+
+```bash Export Database
+underpost db my-app --export --git
+```
+</CodeGroup>
+
+## Common Workflows
+
+### Development Workflow
+
+<Steps>
+  <Step title="Create a new project">
+    ```bash
+    underpost new my-application
+    ```
+  </Step>
+  
+  <Step title="Configure environment">
+    ```bash
+    underpost env my-deploy development
+    ```
+  </Step>
+  
+  <Step title="Start development server">
+    ```bash
+    underpost start my-deploy development --run
+    ```
+  </Step>
+  
+  <Step title="Build client bundle">
+    ```bash
+    underpost start my-deploy development --build
+    ```
+  </Step>
+</Steps>
+
+### Production Deployment
+
+<Steps>
+  <Step title="Initialize cluster">
+    ```bash
+    underpost cluster --mongodb --contour --cert-manager
+    ```
+  </Step>
+  
+  <Step title="Build and load image">
+    ```bash
+    underpost image --build --kind
+    ```
+  </Step>
+  
+  <Step title="Deploy applications">
+    ```bash
+    underpost deploy app-a,app-b production
+    ```
+  </Step>
+  
+  <Step title="Monitor deployment">
+    ```bash
+    underpost monitor my-deploy production --sync
+    ```
+  </Step>
+</Steps>
+
+## Version Information
+
+Current CLI version: **v3.0.2**
+
+```bash
+underpost --version
+```
+
+## Getting Help
+
+Display help for any command:
+
+```bash
+underpost help [command]
+underpost [command] --help
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Getting Started" icon="play" href="/cli/getting-started">
+    Learn how to install and use the CLI
+  </Card>
+  
+  <Card title="Command Reference" icon="book" href="/cli/commands/new">
+    Detailed documentation for all commands
+  </Card>
+</CardGroup>

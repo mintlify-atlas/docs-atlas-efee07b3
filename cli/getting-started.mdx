@@ -1,0 +1,441 @@
+---
+title: Getting Started with Underpost CLI
+description: Install and start using the Underpost command-line interface
+---
+
+Get up and running with the Underpost CLI in minutes. This guide covers installation, basic usage, and creating your first project.
+
+## Installation
+
+### Global Installation
+
+Install Underpost globally via npm to use the CLI from anywhere:
+
+```bash
+npm install -g underpost
+```
+
+This installs version **3.0.2** and makes the `underpost` command available in your terminal.
+
+### Verify Installation
+
+Confirm the installation was successful:
+
+```bash
+underpost --version
+```
+
+You should see:
+
+```
+3.0.2
+```
+
+## System Requirements
+
+<CardGroup cols={2}>
+  <Card title="Node.js" icon="node-js">
+    Node.js v24.10.0 or higher
+  </Card>
+  
+  <Card title="npm" icon="npm">
+    npm v11.6.2 or higher
+  </Card>
+  
+  <Card title="Operating System" icon="linux">
+    Rocky Linux v9.6 (or compatible Linux distribution)
+  </Card>
+  
+  <Card title="MongoDB" icon="database">
+    MongoDB Server v7.0 (optional, for database features)
+  </Card>
+</CardGroup>
+
+## Create Your First Project
+
+<Steps>
+  <Step title="Initialize a new project">
+    Create a new Underpost application:
+    
+    ```bash
+    underpost new my-app
+    ```
+    
+    This command scaffolds a complete PWA/API-REST project with all necessary configurations.
+  </Step>
+  
+  <Step title="Navigate to project directory">
+    ```bash
+    cd my-app
+    ```
+  </Step>
+  
+  <Step title="Server starts automatically">
+    After template installation completes, the server will be running on:
+    
+    ```
+    http://localhost:4001
+    ```
+  </Step>
+</Steps>
+
+## Basic Usage
+
+### Start Development Server
+
+Start your application in development mode:
+
+```bash
+underpost start my-deploy development --run
+```
+
+Or using npm scripts:
+
+```bash
+npm run dev
+```
+
+### Build Client Bundle
+
+Compile and bundle your client-side application:
+
+```bash
+underpost start my-deploy development --build
+```
+
+Or using npm scripts:
+
+```bash
+npm run build
+```
+
+## Essential Commands
+
+### Project Management
+
+<CodeGroup>
+```bash Create New Project
+underpost new my-application
+```
+
+```bash Create Deploy Configuration
+underpost new --deploy-id my-deploy --default-conf
+```
+
+```bash Create Cluster Files
+underpost new --deploy-id my-deploy --cluster
+```
+</CodeGroup>
+
+### Environment Configuration
+
+<CodeGroup>
+```bash Set Production Environment
+underpost env my-deploy production
+```
+
+```bash Set Development Environment
+underpost env my-deploy development
+```
+
+```bash Get Current Deploy ID
+underpost env current
+```
+
+```bash Clean Environment
+underpost env clean
+```
+</CodeGroup>
+
+### Repository Operations
+
+<CodeGroup>
+```bash Clone Repository
+underpost clone username/repository
+```
+
+```bash Pull Latest Changes
+underpost pull ./my-repo username/repository
+```
+
+```bash Commit Changes
+underpost cmt ./my-repo feat api "Add user authentication"
+```
+
+```bash Push to Remote
+underpost push ./my-repo username/repository
+```
+</CodeGroup>
+
+## Configuration Management
+
+Manage Underpost configurations using the `config` command:
+
+<CodeGroup>
+```bash Set Configuration
+underpost config set API_KEY "your-api-key"
+```
+
+```bash Get Configuration
+underpost config get API_KEY
+```
+
+```bash List All Configurations
+underpost config list
+```
+
+```bash Delete Configuration
+underpost config delete API_KEY
+```
+
+```bash Filter Configurations
+underpost config list --filter database
+```
+</CodeGroup>
+
+## Working with Kubernetes
+
+### Initialize a Cluster
+
+Set up a local Kubernetes cluster with Kind:
+
+```bash
+underpost cluster
+```
+
+With MongoDB and Contour ingress:
+
+```bash
+underpost cluster --mongodb --contour
+```
+
+### Deploy Applications
+
+Deploy one or more applications:
+
+```bash
+underpost deploy my-app development
+```
+
+Deploy multiple applications:
+
+```bash
+underpost deploy app-a,app-b,api production
+```
+
+### Check Deployment Status
+
+```bash
+underpost deploy --status
+```
+
+## Database Operations
+
+### Export Database
+
+Export database with Git integration:
+
+```bash
+underpost db my-app --export --git
+```
+
+### Import Database
+
+Import database backup:
+
+```bash
+underpost db my-app --import
+```
+
+### Database Statistics
+
+View collection and document counts:
+
+```bash
+underpost db my-app --stats
+```
+
+## Common Workflows
+
+### Full Development Setup
+
+<Steps>
+  <Step title="Install Underpost CLI">
+    ```bash
+    npm install -g underpost
+    ```
+  </Step>
+  
+  <Step title="Create new project">
+    ```bash
+    underpost new my-application
+    cd my-application
+    ```
+  </Step>
+  
+  <Step title="Set environment">
+    ```bash
+    underpost env my-app development
+    ```
+  </Step>
+  
+  <Step title="Start development server">
+    ```bash
+    npm run dev
+    ```
+    
+    Your application is now running at http://localhost:4001
+  </Step>
+</Steps>
+
+### Production Deployment Workflow
+
+<Steps>
+  <Step title="Initialize Kubernetes cluster">
+    ```bash
+    underpost cluster --mongodb --contour --cert-manager
+    ```
+  </Step>
+  
+  <Step title="Build Docker image">
+    ```bash
+    underpost image --build --kind --image-name my-app:latest
+    ```
+  </Step>
+  
+  <Step title="Deploy to cluster">
+    ```bash
+    underpost deploy my-app production --replicas 3
+    ```
+  </Step>
+  
+  <Step title="Monitor deployment">
+    ```bash
+    underpost monitor my-app production --sync
+    ```
+  </Step>
+  
+  <Step title="Check status">
+    ```bash
+    underpost deploy --status
+    ```
+  </Step>
+</Steps>
+
+## Utility Commands
+
+### IP Address Management
+
+```bash
+# Display current IP addresses
+underpost ip
+
+# Copy IP to clipboard
+underpost ip --copy
+
+# Ban IP address from ingress
+underpost ip --ban-ingress-add 192.168.1.100
+```
+
+### Display Root Path
+
+```bash
+underpost root
+```
+
+### Quick Dependency Installation
+
+Copy Underpost dependencies to your project:
+
+```bash
+underpost install
+```
+
+## Getting Help
+
+Every command supports the `--help` flag:
+
+```bash
+underpost --help
+underpost new --help
+underpost deploy --help
+```
+
+Display help for specific commands:
+
+```bash
+underpost help deploy
+underpost help cluster
+```
+
+## Command Options
+
+Most commands support common options:
+
+- `--dev` - Sets development CLI context
+- `--namespace <namespace>` - Kubernetes namespace (defaults to "default")
+- `--deploy-id <deploy-id>` - Deployment configuration ID
+- `--kubeadm` - Use kubeadm cluster context
+- `--k3s` - Use K3s cluster context
+- `--kind` - Use Kind cluster context
+
+## Troubleshooting
+
+### Command Not Found
+
+If the `underpost` command is not recognized:
+
+```bash
+# Reinstall globally
+npm install -g underpost
+
+# Check npm global bin path
+npm config get prefix
+```
+
+### Permission Issues
+
+On Linux/macOS, you may need to use sudo:
+
+```bash
+sudo npm install -g underpost
+```
+
+Or configure npm to install packages globally without sudo:
+
+```bash
+mkdir ~/.npm-global
+npm config set prefix '~/.npm-global'
+echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+source ~/.bashrc
+```
+
+### Version Mismatch
+
+Ensure you're using the correct versions:
+
+```bash
+node --version  # Should be v24.10.0 or higher
+npm --version   # Should be v11.6.2 or higher
+underpost --version  # Should be 3.0.2
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="CLI Overview" icon="terminal" href="/cli/overview">
+    Learn about all available commands
+  </Card>
+  
+  <Card title="Command Reference" icon="book" href="/cli/commands/new">
+    Detailed documentation for each command
+  </Card>
+  
+  <Card title="Deployment Guide" icon="rocket" href="/deployment/overview">
+    Deploy your application to production
+  </Card>
+  
+  <Card title="Configuration" icon="gear" href="/concepts/configuration">
+    Configure your Underpost project
+  </Card>
+</CardGroup>

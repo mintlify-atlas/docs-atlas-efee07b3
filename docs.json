@@ -1,122 +1,151 @@
 {
   "$schema": "https://mintlify.com/docs.json",
-  "theme": "mint",
-  "name": "Mint Starter Kit",
+  "name": "Underpost",
+  "theme": "aspen",
   "colors": {
-    "primary": "#16A34A",
-    "light": "#07C983",
-    "dark": "#15803D"
+    "primary": "#0891b2",
+    "light": "#06b6d4",
+    "dark": "#0e7490"
   },
-  "favicon": "/favicon.svg",
+  "navbar": {
+    "primary": {
+      "type": "github",
+      "href": "https://github.com/underpostnet/pwa-microservices-template"
+    }
+  },
+  "footer": {
+    "socials": {
+      "github": "https://github.com/underpostnet/pwa-microservices-template"
+    }
+  },
   "navigation": {
     "tabs": [
       {
-        "tab": "Guides",
+        "tab": "Documentation",
         "groups": [
           {
-            "group": "Getting started",
+            "group": "Get Started",
             "pages": [
-              "index",
+              "introduction",
               "quickstart",
-              "development"
+              "installation"
             ]
           },
           {
-            "group": "Customization",
+            "group": "Core Concepts",
             "pages": [
-              "essentials/settings",
-              "essentials/navigation"
+              "concepts/architecture",
+              "concepts/configuration",
+              "concepts/components",
+              "concepts/routing"
             ]
           },
           {
-            "group": "Writing content",
+            "group": "Development Guides",
             "pages": [
-              "essentials/markdown",
-              "essentials/code",
-              "essentials/images",
-              "essentials/reusable-snippets"
+              "guides/pwa-development",
+              "guides/api-development",
+              "guides/client-components",
+              "guides/database-setup",
+              "guides/authentication"
             ]
           },
           {
-            "group": "AI tools",
+            "group": "Deployment",
             "pages": [
-              "ai-tools/cursor",
-              "ai-tools/claude-code",
-              "ai-tools/windsurf"
+              "deployment/overview",
+              "deployment/docker",
+              "deployment/kubernetes",
+              "deployment/baremetal"
             ]
           }
         ]
       },
       {
-        "tab": "API reference",
+        "tab": "CLI Reference",
         "groups": [
           {
-            "group": "API documentation",
+            "group": "Overview",
             "pages": [
-              "api-reference/introduction"
+              "cli/overview",
+              "cli/getting-started"
             ]
           },
           {
-            "group": "Endpoint examples",
+            "group": "Project Commands",
             "pages": [
-              "api-reference/endpoint/get",
-              "api-reference/endpoint/create",
-              "api-reference/endpoint/delete",
-              "api-reference/endpoint/webhook"
+              "cli/commands/new",
+              "cli/commands/start",
+              "cli/commands/build"
+            ]
+          },
+          {
+            "group": "Git & Repository",
+            "pages": [
+              "cli/commands/clone",
+              "cli/commands/pull",
+              "cli/commands/commit",
+              "cli/commands/push"
+            ]
+          },
+          {
+            "group": "Deployment & Infrastructure",
+            "pages": [
+              "cli/commands/deploy",
+              "cli/commands/cluster",
+              "cli/commands/image",
+              "cli/commands/baremetal"
+            ]
+          },
+          {
+            "group": "Database & Storage",
+            "pages": [
+              "cli/commands/db",
+              "cli/commands/fs"
+            ]
+          },
+          {
+            "group": "Monitoring & Operations",
+            "pages": [
+              "cli/commands/monitor",
+              "cli/commands/test",
+              "cli/commands/cron"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Server API",
+            "pages": [
+              "api/server/overview",
+              "api/server/core",
+              "api/server/user",
+              "api/server/file",
+              "api/server/document"
+            ]
+          },
+          {
+            "group": "Client Components",
+            "pages": [
+              "api/client/overview",
+              "api/client/core-components",
+              "api/client/ui-components",
+              "api/client/services"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "api/configuration/server",
+              "api/configuration/client",
+              "api/configuration/database"
             ]
           }
         ]
       }
-    ],
-    "global": {
-      "anchors": [
-        {
-          "anchor": "Documentation",
-          "href": "https://mintlify.com/docs",
-          "icon": "book-open-cover"
-        },
-        {
-          "anchor": "Blog",
-          "href": "https://mintlify.com/blog",
-          "icon": "newspaper"
-        }
-      ]
-    }
-  },
-  "logo": {
-    "light": "/logo/light.svg",
-    "dark": "/logo/dark.svg"
-  },
-  "navbar": {
-    "links": [
-      {
-        "label": "Support",
-        "href": "mailto:hi@mintlify.com"
-      }
-    ],
-    "primary": {
-      "type": "button",
-      "label": "Dashboard",
-      "href": "https://dashboard.mintlify.com"
-    }
-  },
-  "contextual": {
-    "options": [
-     "copy",
-     "view",
-     "chatgpt",
-     "claude",
-     "perplexity",
-     "mcp",
-     "cursor",
-     "vscode"
-   ]
-  },
-  "footer": {
-    "socials": {
-      "x": "https://x.com/mintlify",
-      "github": "https://github.com/mintlify",
-      "linkedin": "https://linkedin.com/company/mintlify"
-    }
+    ]
   }
 }

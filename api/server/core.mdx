@@ -1,0 +1,246 @@
+---
+title: Core API
+description: Base CRUD operations for core resources
+---
+
+The Core API provides fundamental Create, Read, Update, and Delete operations for core database resources. All endpoints require admin authentication.
+
+## Authentication
+
+All Core API endpoints require:
+- Valid JWT token in Authorization header
+- Admin role (`adminGuard` middleware)
+
+```bash
+Authorization: Bearer <admin-jwt-token>
+```
+
+## Endpoints
+
+### Create Resource
+
+Create a new core resource.
+
+```http
+POST /api/core
+POST /api/core/:id
+```
+
+<ParamField path="id" type="string" optional>
+  Optional resource identifier
+</ParamField>
+
+<ParamField body="data" type="object" required>
+  Resource data to create
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/core', {
+  method: 'POST',
+  headers: {
+    'Authorization': `Bearer ${adminToken}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Your resource data
+  })
+});
+
+const result = await response.json();
+```
+
+#### Response
+
+<ResponseField name="status" type="string">
+  Response status ("success" or "error")
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Created resource object
+</ResponseField>
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "507f1f77bcf86cd799439011"
+  }
+}
+```
+
+### Get Resource
+
+Retrieve a core resource by ID.
+
+```http
+GET /api/core/:id
+GET /api/core
+```
+
+<ParamField path="id" type="string" required>
+  Resource ID to retrieve
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/core/507f1f77bcf86cd799439011', {
+  method: 'GET',
+  headers: {
+    'Authorization': `Bearer ${adminToken}`
+  }
+});
+
+const result = await response.json();
+```
+
+#### Response
+
+<ResponseField name="status" type="string">
+  Response status ("success" or "error")
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Retrieved resource object
+</ResponseField>
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "507f1f77bcf86cd799439011"
+  }
+}
+```
+
+### Update Resource
+
+Update an existing core resource.
+
+```http
+PUT /api/core/:id
+PUT /api/core
+```
+
+<ParamField path="id" type="string" required>
+  Resource ID to update
+</ParamField>
+
+<ParamField body="data" type="object" required>
+  Updated resource data
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/core/507f1f77bcf86cd799439011', {
+  method: 'PUT',
+  headers: {
+    'Authorization': `Bearer ${adminToken}`,
+    'Content-Type': 'application/json'
+  },
+  body: JSON.stringify({
+    // Updated fields
+  })
+});
+
+const result = await response.json();
+```
+
+#### Response
+
+<ResponseField name="status" type="string">
+  Response status ("success" or "error")
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Updated resource object
+</ResponseField>
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "507f1f77bcf86cd799439011"
+  }
+}
+```
+
+### Delete Resource
+
+Delete a core resource by ID.
+
+```http
+DELETE /api/core/:id
+DELETE /api/core
+```
+
+<ParamField path="id" type="string" required>
+  Resource ID to delete
+</ParamField>
+
+#### Example Request
+
+```javascript
+const response = await fetch('/api/core/507f1f77bcf86cd799439011', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': `Bearer ${adminToken}`
+  }
+});
+
+const result = await response.json();
+```
+
+#### Response
+
+<ResponseField name="status" type="string">
+  Response status ("success" or "error")
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Deleted resource object
+</ResponseField>
+
+```json
+{
+  "status": "success",
+  "data": {
+    "_id": "507f1f77bcf86cd799439011"
+  }
+}
+```
+
+## Error Handling
+
+All endpoints return a 400 status code on error:
+
+```json
+{
+  "status": "error",
+  "message": "Error description"
+}
+```
+
+## Implementation Details
+
+The Core API uses a standard service pattern:
+
+**Router** (`src/api/core/core.router.js:11-18`)
+- Express Router with admin guard middleware
+- Supports both `/` and `/:id` patterns for all methods
+
+**Controller** (`src/api/core/core.controller.js:6-67`)
+- Handles request/response transformation
+- Returns standardized JSON responses
+- Logs errors with stack traces
+
+**Service** (`src/api/core/core.service.js:7-28`)
+- Performs database operations using Mongoose
+- Methods: `post`, `get`, `put`, `delete`
+
+**Model** (`src/api/core/core.model.js:5`)
+- Empty Mongoose schema (base implementation)
+- Extend as needed for your use case

@@ -1,0 +1,451 @@
+---
+title: Installation
+description: Complete installation guide for Underpost framework including system requirements and dependencies
+---
+
+# Installation
+
+This guide covers everything you need to install and configure the Underpost framework for local development and production deployments.
+
+## System Requirements
+
+<CardGroup cols={2}>
+  <Card title="Operating System" icon="linux">
+    **Recommended:** Rocky Linux v9.6
+    
+    Also supports: Ubuntu, Debian, macOS, Windows (WSL2)
+  </Card>
+  <Card title="Runtime" icon="node-js">
+    **Node.js:** v24.10.0 or higher
+    
+    **npm:** v11.6.2 or higher
+  </Card>
+  <Card title="Databases" icon="database">
+    **MongoDB:** v7.0 (optional)
+    
+    **MariaDB:** Latest stable (optional)
+  </Card>
+  <Card title="Containers" icon="docker">
+    **Docker:** Latest stable (optional)
+    
+    **Kubernetes/Kind:** For cluster deployments
+  </Card>
+</CardGroup>
+
+<Note>
+Databases and container tools are optional depending on your project needs. The core framework requires only Node.js and npm.
+</Note>
+
+## Installing Node.js
+
+### Using Node Version Manager (Recommended)
+
+<Steps>
+  <Step title="Install NVM">
+    Download and install NVM:
+    
+    ```bash
+    curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.39.0/install.sh | bash
+    ```
+    
+    Restart your terminal or run:
+    
+    ```bash
+    source ~/.bashrc  # or ~/.zshrc for zsh
+    ```
+  </Step>
+  
+  <Step title="Install Node.js">
+    Install the required Node.js version:
+    
+    ```bash
+    nvm install 24.10.0
+    nvm use 24.10.0
+    ```
+  </Step>
+  
+  <Step title="Verify Installation">
+    Confirm Node.js and npm are installed:
+    
+    ```bash
+    node --version  # Should output v24.10.0 or higher
+    npm --version   # Should output v11.6.2 or higher
+    ```
+  </Step>
+</Steps>
+
+### Direct Installation
+
+<CodeGroup>
+
+```bash Ubuntu/Debian
+curl -fsSL https://deb.nodesource.com/setup_24.x | sudo -E bash -
+sudo apt-get install -y nodejs
+```
+
+```bash Rocky Linux/RHEL
+curl -fsSL https://rpm.nodesource.com/setup_24.x | sudo bash -
+sudo yum install -y nodejs
+```
+
+```bash macOS (Homebrew)
+brew install node@24
+```
+
+```bash Windows
+# Download from https://nodejs.org/
+# Or use Chocolatey:
+choco install nodejs --version=24.10.0
+```
+
+</CodeGroup>
+
+## Installing Underpost
+
+### Global Installation
+
+Install Underpost globally to access the CLI from anywhere:
+
+```bash
+npm install -g underpost
+```
+
+<Note>
+On Linux/macOS, you may need to use `sudo` if you encounter permission errors:
+```bash
+sudo npm install -g underpost
+```
+</Note>
+
+### Verify Installation
+
+Check that Underpost is installed correctly:
+
+```bash
+underpost --version
+```
+
+Expected output:
+```
+3.0.2
+```
+
+View available commands:
+
+```bash
+underpost --help
+```
+
+## Global Dependencies
+
+Underpost projects use several global npm packages that you can install for enhanced development:
+
+### Required for Development
+
+```bash
+npm install -g env-cmd jsdoc prettier
+```
+
+### Required for Testing
+
+```bash
+npm install -g mocha c8 coveralls
+```
+
+### All-in-One Installation
+
+The Underpost template includes scripts to install all global dependencies:
+
+```bash
+# After creating a project with 'underpost new my-app'
+cd my-app
+npm run install-global
+npm run install-test
+```
+
+Or install everything at once:
+
+```bash
+npm run install
+```
+
+## Database Setup (Optional)
+
+### MongoDB
+
+If your project requires MongoDB:
+
+<CodeGroup>
+
+```bash Ubuntu/Debian
+sudo apt-get install -y mongodb-org
+sudo systemctl start mongod
+sudo systemctl enable mongod
+```
+
+```bash Rocky Linux/RHEL
+sudo dnf install -y mongodb-org
+sudo systemctl start mongod
+sudo systemctl enable mongod
+```
+
+```bash macOS (Homebrew)
+brew tap mongodb/brew
+brew install mongodb-community@7.0
+brew services start mongodb-community@7.0
+```
+
+```bash Docker
+docker run -d -p 27017:27017 --name mongodb mongo:7.0
+```
+
+</CodeGroup>
+
+### MariaDB
+
+For MariaDB database support:
+
+<CodeGroup>
+
+```bash Ubuntu/Debian
+sudo apt-get install -y mariadb-server
+sudo systemctl start mariadb
+sudo mysql_secure_installation
+```
+
+```bash Rocky Linux/RHEL
+sudo dnf install -y mariadb-server
+sudo systemctl start mariadb
+sudo mysql_secure_installation
+```
+
+```bash macOS (Homebrew)
+brew install mariadb
+brew services start mariadb
+```
+
+```bash Docker
+docker run -d -p 3306:3306 --name mariadb \
+  -e MYSQL_ROOT_PASSWORD=rootpassword \
+  mariadb:latest
+```
+
+</CodeGroup>
+
+## Container Setup (Optional)
+
+For Kubernetes cluster management and container deployments:
+
+### Docker
+
+<CodeGroup>
+
+```bash Ubuntu/Debian
+curl -fsSL https://get.docker.com -o get-docker.sh
+sudo sh get-docker.sh
+sudo usermod -aG docker $USER
+```
+
+```bash Rocky Linux/RHEL
+sudo dnf config-manager --add-repo=https://download.docker.com/linux/centos/docker-ce.repo
+sudo dnf install -y docker-ce docker-ce-cli containerd.io
+sudo systemctl start docker
+sudo systemctl enable docker
+```
+
+```bash macOS
+brew install --cask docker
+```
+
+</CodeGroup>
+
+### Kind (Kubernetes in Docker)
+
+For local Kubernetes development:
+
+```bash
+curl -Lo ./kind https://kind.sigs.k8s.io/dl/v0.20.0/kind-linux-amd64
+chmod +x ./kind
+sudo mv ./kind /usr/local/bin/kind
+```
+
+Create a cluster using Underpost CLI:
+
+```bash
+underpost cluster my-cluster
+```
+
+## Project Installation
+
+Once Underpost is installed globally, create a new project:
+
+```bash
+underpost new my-app
+```
+
+This command will:
+
+1. Create project directory structure
+2. Install all npm dependencies
+3. Set up environment configuration files
+4. Start the development server on http://localhost:4001
+
+### Manual Dependency Installation
+
+If you need to reinstall dependencies:
+
+```bash
+cd my-app
+npm install
+```
+
+### Quick Install Option
+
+Use Underpost's fast dependency installation:
+
+```bash
+underpost install
+```
+
+This quickly copies Underpost npm dependencies instead of full installation.
+
+## Environment Configuration
+
+Underpost uses environment-specific configuration files:
+
+- `.env.development` - Development settings
+- `.env.production` - Production settings  
+- `.env.test` - Testing configuration
+
+Example `.env.development`:
+
+```bash
+PORT=4001
+NODE_ENV=development
+MONGODB_URI=mongodb://localhost:27017/myapp
+JWT_SECRET=your-secret-key
+```
+
+<Warning>
+Never commit `.env` files containing secrets to version control. Use `.env.example` templates instead.
+</Warning>
+
+## Verify Your Installation
+
+Run through this checklist to ensure everything is set up correctly:
+
+<Steps>
+  <Step title="Check Node.js">
+    ```bash
+    node --version
+    ```
+    Should be v24.10.0 or higher
+  </Step>
+  
+  <Step title="Check npm">
+    ```bash
+    npm --version
+    ```
+    Should be v11.6.2 or higher
+  </Step>
+  
+  <Step title="Check Underpost CLI">
+    ```bash
+    underpost --version
+    ```
+    Should be 3.0.2 or higher
+  </Step>
+  
+  <Step title="Create Test Project">
+    ```bash
+    underpost new test-app
+    ```
+    Should create project and start server
+  </Step>
+  
+  <Step title="Access Application">
+    Open http://localhost:4001 in your browser
+  </Step>
+</Steps>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Permission errors during global install">
+    On Linux/macOS, use `sudo` or configure npm to use a different directory:
+    
+    ```bash
+    mkdir ~/.npm-global
+    npm config set prefix '~/.npm-global'
+    echo 'export PATH=~/.npm-global/bin:$PATH' >> ~/.bashrc
+    source ~/.bashrc
+    ```
+    
+    Then install without sudo:
+    ```bash
+    npm install -g underpost
+    ```
+  </Accordion>
+  
+  <Accordion title="Node.js version mismatch">
+    If you have multiple Node.js versions, use NVM to switch:
+    
+    ```bash
+    nvm install 24.10.0
+    nvm use 24.10.0
+    nvm alias default 24.10.0
+    ```
+  </Accordion>
+  
+  <Accordion title="MongoDB connection errors">
+    Ensure MongoDB is running:
+    
+    ```bash
+    sudo systemctl status mongod
+    ```
+    
+    Check the connection URI in your `.env` file matches your MongoDB setup.
+  </Accordion>
+  
+  <Accordion title="Port 4001 already in use">
+    Find and stop the process using the port:
+    
+    ```bash
+    lsof -i :4001
+    kill -9 <PID>
+    ```
+    
+    Or change the port in `.env.development`:
+    ```
+    PORT=4002
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Quick Start" icon="rocket" href="/quickstart">
+    Create your first application and start building
+  </Card>
+  <Card title="CLI Reference" icon="terminal" href="https://github.com/underpostnet/pwa-microservices-template/blob/master/CLI-HELP.md">
+    Learn about all available CLI commands
+  </Card>
+  <Card title="Configuration" icon="gear">
+    Deep dive into environment and deployment configuration
+  </Card>
+  <Card title="Deployment" icon="cloud">
+    Deploy your application to production environments
+  </Card>
+</CardGroup>
+
+## Additional Resources
+
+- [Official Documentation](https://www.nexodev.org/docs?cid=src)
+- [GitHub Repository](https://github.com/underpostnet/pwa-microservices-template)
+- [npm Package](https://www.npmjs.com/package/underpost)
+- [Issue Tracker](https://github.com/underpostnet/pwa-microservices-template/issues)
+
+<Card title="Installation complete!" icon="check" href="/quickstart">
+  Head to the Quick Start guide to build your first app
+</Card>

@@ -1,28 +1,17 @@
-# Mintlify Starter Kit
+# Underpost Documentation
 
-Use the starter kit to get your docs deployed and ready to customize.
+Official documentation for the Underpost framework - a full-stack PWA and API-REST framework with microservices architecture, comprehensive CLI tools, and end-to-end CI/CD capabilities.
 
-Click the green **Use this template** button at the top of this repo to copy the Mintlify starter kit. The starter kit contains examples with
+## About
 
-- Guide pages
-- Navigation
-- Customizations
-- API reference pages
-- Use of popular components
+This documentation covers:
 
-**[Follow the full quickstart guide](https://starter.mintlify.com/quickstart)**
-
-## AI-assisted writing
-
-Set up your AI coding tool to work with Mintlify:
-
-```bash
-npx skills add https://mintlify.com/docs
-```
-
-This command installs Mintlify's documentation skill for your configured AI tools like Claude Code, Cursor, Windsurf, and others. The skill includes component reference, writing standards, and workflow guidance.
-
-See the [AI tools guides](/ai-tools) for tool-specific setup.
+- Getting started guides
+- Core concepts and architecture
+- Development guides for PWA and API development
+- Complete CLI reference (20+ commands)
+- API reference for server and client components
+- Deployment guides (Docker, Kubernetes, Bare Metal)
 
 ## Development
 

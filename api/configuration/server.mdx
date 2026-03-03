@@ -1,0 +1,322 @@
+---
+title: 'Server Configuration'
+description: 'Complete API reference for Underpost server configuration'
+---
+
+## Overview
+
+The server configuration defines how your Underpost application hosts are configured, including runtime environment, APIs, databases, WebSocket connections, and build options.
+
+## Configuration Structure
+
+Server configuration is organized by host and path:
+
+```javascript
+server: {
+  'default.net': {
+    '/': {
+      // Server configuration for default.net root path
+    }
+  },
+  'www.default.net': {
+    '/': {
+      // Server configuration for www subdomain
+    }
+  }
+}
+```
+
+## Server Properties
+
+<ParamField path="client" type="string" required>
+  The client ID to serve at this host/path. References a client configuration key.
+  
+  Set to `null` for API-only servers or redirects.
+  
+  **Example:** `"default"`
+</ParamField>
+
+<ParamField path="runtime" type="string" required>
+  The runtime environment for the server.
+  
+  **Options:**
+  - `"nodejs"` - Node.js runtime
+  
+  **Example:** `"nodejs"`
+</ParamField>
+
+<ParamField path="apis" type="string[]" required>
+  Array of API modules to load and expose at this endpoint.
+  
+  Each API corresponds to a folder in `src/api/`.
+  
+  **Example:** `["default", "core", "user", "test", "file", "document"]`
+</ParamField>
+
+<ParamField path="origins" type="string[]">
+  CORS allowed origins for cross-origin requests.
+  
+  Leave empty to allow same-origin only.
+  
+  **Example:** `["https://app.example.com", "https://admin.example.com"]`
+</ParamField>
+
+<ParamField path="proxy" type="number[]">
+  Port numbers for proxy configuration.
+  
+  **Example:** `[80, 443]`
+</ParamField>
+
+<ParamField path="ws" type="string">
+  WebSocket handler ID to use for real-time connections.
+  
+  References a WebSocket module in `src/ws/`.
+  
+  **Example:** `"core"`
+</ParamField>
+
+<ParamField path="peer" type="boolean">
+  Enable PeerJS server for WebRTC peer-to-peer connections.
+  
+  When enabled, creates a `/peer` endpoint.
+  
+  **Default:** `false`
+</ParamField>
+
+## Build Configuration
+
+<ParamField path="minifyBuild" type="boolean">
+  Enable code minification during build process.
+  
+  Reduces bundle size but makes debugging harder.
+  
+  **Default:** `false`
+</ParamField>
+
+<ParamField path="iconsBuild" type="boolean">
+  Build and optimize application icons during build.
+  
+  **Default:** `false`
+</ParamField>
+
+<ParamField path="liteBuild" type="boolean">
+  Use lightweight build mode with minimal dependencies.
+  
+  **Default:** `true`
+</ParamField>
+
+<ParamField path="docsBuild" type="boolean">
+  Include documentation generation in build process.
+  
+  **Default:** `false`
+</ParamField>
+
+<ParamField path="offlineBuild" type="boolean">
+  Generate offline support assets (service worker, offline pages).
+  
+  **Default:** `false`
+</ParamField>
+
+## Database Configuration
+
+<ParamField path="db" type="object">
+  Database connection configuration.
+  
+  See [Database Configuration](/api/configuration/database) for complete details.
+  
+  <Expandable title="Database Object Properties">
+    <ParamField path="db.provider" type="string" required>
+      Database provider type.
+      
+      **Options:** `"mongoose"` (MongoDB)
+    </ParamField>
+    
+    <ParamField path="db.host" type="string" required>
+      Database connection URI.
+      
+      **Example:** `"mongodb://127.0.0.1:27017"`
+    </ParamField>
+    
+    <ParamField path="db.name" type="string" required>
+      Database name.
+      
+      **Example:** `"default"`
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Mailer Configuration
+
+<ParamField path="mailer" type="object">
+  Email sending configuration for transactional emails.
+  
+  <Expandable title="Mailer Object Properties">
+    <ParamField path="mailer.sender" type="object" required>
+      Email sender information.
+      
+      <Expandable title="Sender Properties">
+        <ParamField path="mailer.sender.email" type="string" required>
+          Sender email address.
+          
+          **Example:** `"noreply@default.net"`
+        </ParamField>
+        
+        <ParamField path="mailer.sender.name" type="string" required>
+          Sender display name.
+          
+          **Example:** `"Default"`
+        </ParamField>
+      </Expandable>
+    </ParamField>
+    
+    <ParamField path="mailer.transport" type="object" required>
+      SMTP transport configuration.
+      
+      <Expandable title="Transport Properties">
+        <ParamField path="mailer.transport.host" type="string" required>
+          SMTP server hostname.
+          
+          **Example:** `"smtp.default.com"`
+        </ParamField>
+        
+        <ParamField path="mailer.transport.port" type="number" required>
+          SMTP server port.
+          
+          **Example:** `465`
+        </ParamField>
+        
+        <ParamField path="mailer.transport.secure" type="boolean" required>
+          Use SSL/TLS encryption.
+          
+          **Example:** `true`
+        </ParamField>
+        
+        <ParamField path="mailer.transport.auth" type="object" required>
+          SMTP authentication credentials.
+          
+          <Expandable title="Auth Properties">
+            <ParamField path="mailer.transport.auth.user" type="string" required>
+              SMTP username.
+              
+              **Example:** `"noreply@default.net"`
+            </ParamField>
+            
+            <ParamField path="mailer.transport.auth.pass" type="string" required>
+              SMTP password.
+              
+              **Example:** `"your-password"`
+            </ParamField>
+          </Expandable>
+        </ParamField>
+      </Expandable>
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Valkey/Redis Configuration
+
+<ParamField path="valkey" type="object">
+  Valkey (Redis-compatible) cache configuration.
+  
+  <Expandable title="Valkey Object Properties">
+    <ParamField path="valkey.port" type="number" required>
+      Valkey server port.
+      
+      **Default:** `6379`
+    </ParamField>
+    
+    <ParamField path="valkey.host" type="string" required>
+      Valkey server hostname.
+      
+      **Default:** `"127.0.0.1"`
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+## Replica Configuration
+
+<ParamField path="replicas" type="string[]">
+  List of replica paths for load balancing and high availability.
+  
+  Used with `singleReplica` mode.
+  
+  **Example:** `["/r1", "/r2", "/r3"]`
+</ParamField>
+
+<ParamField path="singleReplica" type="boolean">
+  Enable single replica mode for this server path.
+  
+  When enabled, creates isolated instances for each replica path.
+  
+  **Default:** `false`
+</ParamField>
+
+<ParamField path="redirect" type="string">
+  Redirect configuration for this host/path.
+  
+  **Example:** `"https://www.example.com"`
+</ParamField>
+
+## Complete Example
+
+```javascript
+server: {
+  'default.net': {
+    '/': {
+      client: 'default',
+      runtime: 'nodejs',
+      apis: ['default', 'core', 'user', 'test', 'file', 'document'],
+      origins: [],
+      minifyBuild: false,
+      iconsBuild: false,
+      liteBuild: true,
+      docsBuild: false,
+      offlineBuild: false,
+      ws: 'core',
+      peer: true,
+      proxy: [80, 443],
+      db: {
+        provider: 'mongoose',
+        host: 'mongodb://127.0.0.1:27017',
+        name: 'default'
+      },
+      mailer: {
+        sender: {
+          email: 'noreply@default.net',
+          name: 'Default'
+        },
+        transport: {
+          host: 'smtp.default.com',
+          port: 465,
+          secure: true,
+          auth: {
+            user: 'noreply@default.net',
+            pass: 'your-password'
+          }
+        }
+      },
+      valkey: {
+        port: 6379,
+        host: '127.0.0.1'
+      }
+    }
+  },
+  'www.default.net': {
+    '/': {
+      client: null,
+      runtime: 'nodejs',
+      apis: [],
+      origins: [],
+      minifyBuild: false,
+      liteBuild: true,
+      proxy: [80, 443]
+    }
+  }
+}
+```
+
+## Related
+
+- [Client Configuration](/api/configuration/client)
+- [Database Configuration](/api/configuration/database)
+- [Concepts: Configuration](/concepts/configuration)

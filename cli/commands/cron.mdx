@@ -1,0 +1,303 @@
+---
+title: 'underpost cron'
+description: 'Manage cron jobs and generate Kubernetes CronJob manifests'
+---
+
+## Overview
+
+The `underpost cron` command manages cron jobs, including executing jobs directly and generating Kubernetes CronJob YAML manifests for scheduled automation.
+
+## Usage
+
+```bash
+underpost cron [deploy-list] [job-list] [options]
+```
+
+## Arguments
+
+<ParamField path="deploy-list" type="string" default="default">
+  Comma-separated list of deployment IDs (e.g., `default-a,default-b`)
+</ParamField>
+
+<ParamField path="job-list" type="string" default="dns,backup">
+  Comma-separated list of job IDs. Available jobs: `dns`, `backup`
+</ParamField>
+
+## Options
+
+### Manifest Generation
+
+<ParamField path="--generate-k8s-cronjobs" type="boolean">
+  Generates Kubernetes CronJob YAML manifests from cron configuration
+</ParamField>
+
+<ParamField path="--apply" type="boolean">
+  Applies generated K8s CronJob manifests to the cluster via kubectl
+</ParamField>
+
+<ParamField path="--setup-start" type="string">
+  Updates deploy-id package.json start script and generates+applies its K8s CronJob manifests
+</ParamField>
+
+### Job Execution
+
+<ParamField path="--dry-run" type="boolean">
+  Preview cron jobs without executing them
+</ParamField>
+
+<ParamField path="--create-job-now" type="boolean">
+  After applying manifests, immediately create a Job from each CronJob (requires `--apply`)
+</ParamField>
+
+### Configuration
+
+<ParamField path="--namespace" type="string" default="default">
+  Kubernetes namespace for the CronJob resources
+</ParamField>
+
+<ParamField path="--image" type="string">
+  Custom container image for the CronJob pods
+</ParamField>
+
+<ParamField path="--cmd" type="string">
+  Optional pre-script commands to run before cron execution
+</ParamField>
+
+### Execution Context
+
+<ParamField path="--git" type="boolean">
+  Pass --git flag to cron job execution
+</ParamField>
+
+<ParamField path="--dev" type="boolean">
+  Use local `./` base path instead of global underpost installation
+</ParamField>
+
+<ParamField path="--ssh" type="boolean">
+  Execute backup commands via SSH on the remote node instead of locally
+</ParamField>
+
+### Cluster Type
+
+<ParamField path="--k3s" type="boolean">
+  Use k3s cluster context (apply directly on host)
+</ParamField>
+
+<ParamField path="--kind" type="boolean">
+  Use kind cluster context (apply via kind-worker container)
+</ParamField>
+
+<ParamField path="--kubeadm" type="boolean">
+  Use kubeadm cluster context (apply directly on host)
+</ParamField>
+
+## Examples
+
+### Execute DNS Job
+
+```bash
+underpost cron default dns
+```
+
+Runs the DNS cron job for the default deployment.
+
+### Execute Backup Job
+
+```bash
+underpost cron default backup --git
+```
+
+Runs backup job with Git integration.
+
+### Execute All Jobs
+
+```bash
+underpost cron default dns,backup
+```
+
+Runs both DNS and backup jobs sequentially.
+
+### Generate CronJob Manifests
+
+```bash
+underpost cron --generate-k8s-cronjobs
+```
+
+Generates Kubernetes CronJob YAML manifests based on `conf.cron.json`.
+
+### Generate and Apply Manifests
+
+```bash
+underpost cron --generate-k8s-cronjobs --apply
+```
+
+Generates and applies CronJob manifests to the cluster.
+
+### Setup Deployment Start Script
+
+```bash
+underpost cron --setup-start default
+```
+
+Updates `package.json` start script and generates CronJob manifests.
+
+### Custom Image and Namespace
+
+```bash
+underpost cron --generate-k8s-cronjobs --apply --image myregistry/custom:latest --namespace production
+```
+
+Generates manifests with custom image and applies to production namespace.
+
+### Apply with Immediate Execution
+
+```bash
+underpost cron --generate-k8s-cronjobs --apply --create-job-now
+```
+
+Applies manifests and immediately creates Jobs from each CronJob.
+
+### Dry Run
+
+```bash
+underpost cron default backup --dry-run
+```
+
+Previews what the backup job would do without executing it.
+
+## Configuration File
+
+Cron jobs are configured in:
+
+```
+./engine-private/conf/<deploy-id>/conf.cron.json
+```
+
+Example configuration:
+
+```json
+{
+  "jobs": {
+    "dns": {
+      "enabled": true,
+      "expression": "0 */6 * * *"
+    },
+    "backup": {
+      "enabled": true,
+      "expression": "0 2 * * *"
+    }
+  }
+}
+```
+
+### Job Properties
+
+<ParamField path="enabled" type="boolean" default="true">
+  Whether the cron job is enabled
+</ParamField>
+
+<ParamField path="expression" type="string" default="0 0 * * *">
+  Cron schedule expression (minute hour day month weekday)
+</ParamField>
+
+## Cron Expression Examples
+
+```bash
+# Every 6 hours
+0 */6 * * *
+
+# Daily at 2:00 AM
+0 2 * * *
+
+# Every Monday at 3:00 AM
+0 3 * * 1
+
+# Every 15 minutes
+*/15 * * * *
+
+# First day of month at midnight
+0 0 1 * *
+```
+
+## Manifest Generation Process
+
+<Steps>
+  <Step title="Read Configuration">
+    Reads `conf.cron.json` from the deployment configuration directory.
+  </Step>
+  
+  <Step title="Generate YAML">
+    Creates Kubernetes CronJob YAML for each enabled job:
+    ```yaml
+    apiVersion: batch/v1
+    kind: CronJob
+    metadata:
+      name: <deploy-id>-<job-id>
+      namespace: default
+    spec:
+      schedule: "0 */6 * * *"
+      jobTemplate:
+        spec:
+          template:
+            spec:
+              containers:
+              - name: <deploy-id>-<job-id>
+                image: underpost/underpost-engine:<version>
+                command: ["underpost", "cron", "<deploy-id>", "<job-id>"]
+    ```
+  </Step>
+  
+  <Step title="Save Manifests">
+    Saves manifests to:
+    ```
+    ./manifests/cronjobs/<deploy-id>/<deploy-id>-<job-id>.yaml
+    ```
+  </Step>
+  
+  <Step title="Apply to Cluster">
+    If `--apply` flag is set, executes:
+    ```bash
+    kubectl apply -f ./manifests/cronjobs/<deploy-id>/<deploy-id>-<job-id>.yaml
+    ```
+  </Step>
+</Steps>
+
+## Available Jobs
+
+### dns
+
+Manages DNS-related operations:
+- Updates DNS records
+- Synchronizes IP addresses
+- Manages DHCP configurations
+
+### backup
+
+Manages database backup operations:
+- Exports databases (MariaDB, MongoDB)
+- Commits backups to Git repositories
+- Cleans up old backups
+
+## Volume Mounts
+
+CronJobs mount the following volumes:
+
+```yaml
+volumeMounts:
+  - mountPath: /home/dd/engine
+    name: underpost-cron-container-volume
+  - mountPath: /usr/lib/node_modules/underpost/.env
+    name: underpost-share-env
+    subPath: .env
+```
+
+## Notes
+
+- CronJobs use `concurrencyPolicy: Forbid` to prevent overlapping executions
+- Successful job history is limited to 3 runs
+- Failed job history is limited to 1 run
+- Starting deadline is 200 seconds
+- For kind clusters, engine volume is synced to kind-worker before applying
+- Default image is `underpost/underpost-engine:<version>`
+- Job names are sanitized to DNS subdomain format (max 52 characters)
+- The `--setup-start` option automatically configures package.json for easy deployment

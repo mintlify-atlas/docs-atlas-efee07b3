@@ -1,0 +1,510 @@
+---
+title: UI Components
+description: Reusable interface components for forms, buttons, and data display
+---
+
+## Input
+
+Form input component with validation and file handling.
+
+### Render
+
+#### Input.Render(options)
+
+Render an input element.
+
+<ParamField path="options.id" type="string" required>
+  Unique input identifier
+</ParamField>
+<ParamField path="options.type" type="string" default="'text'">
+  Input type: `'text'`, `'password'`, `'email'`, `'file'`, `'color'`, `'datetime-local'`, etc.
+</ParamField>
+<ParamField path="options.placeholder" type="string | boolean">
+  Placeholder text (use `true` for default `. . .`)
+</ParamField>
+<ParamField path="options.label" type="string | html">
+  Label text displayed above input
+</ParamField>
+<ParamField path="options.value" type="string">
+  Initial value
+</ParamField>
+<ParamField path="options.disabled" type="boolean" default="false">
+  Whether input is disabled
+</ParamField>
+<ParamField path="options.required" type="boolean" default="false">
+  Whether input is required
+</ParamField>
+<ParamField path="options.containerClass" type="string">
+  CSS class for outer container
+</ParamField>
+<ParamField path="options.inputClass" type="string">
+  CSS class for input element
+</ParamField>
+
+```javascript
+import { Input } from './Input.js';
+import { Translate } from './Translate.js';
+
+const html = await Input.Render({
+  id: 'email-input',
+  type: 'email',
+  placeholder: true,
+  label: html`<i class="fas fa-envelope"></i> ${Translate.Render('email')}`,
+  containerClass: 'in section-mp',
+  required: true
+});
+```
+
+### Password Input
+
+Password inputs include an eye icon to toggle visibility:
+
+```javascript
+const passwordInput = await Input.Render({
+  id: 'password-input',
+  type: 'password',
+  label: Translate.Render('password'),
+  disabledEye: false // Show toggle eye icon
+});
+```
+
+### File Input
+
+#### InputFile.Render(options, on)
+
+Render a file input with drag-and-drop and preview grid.
+
+<ParamField path="options.id" type="string" required>
+  Unique input identifier
+</ParamField>
+<ParamField path="options.multiple" type="boolean" default="false">
+  Allow multiple file selection
+</ParamField>
+<ParamField path="options.extensionsAccept" type="string[]">
+  Allowed MIME types (e.g., `['image/png', 'image/jpeg']`)
+</ParamField>
+<ParamField path="on.change" type="function">
+  Callback when files are selected
+</ParamField>
+<ParamField path="on.clear" type="function">
+  Callback when files are cleared
+</ParamField>
+
+```javascript
+import { InputFile } from './Input.js';
+
+const fileInput = await InputFile.Render(
+  {
+    id: 'document-upload',
+    multiple: true,
+    extensionsAccept: ['application/pdf', 'image/png']
+  },
+  {
+    change: (e) => {
+      console.log('Files selected:', e.target.files);
+    },
+    clear: () => {
+      console.log('Files cleared');
+    }
+  }
+);
+```
+
+### Utility Functions
+
+#### Input.getValues(formData)
+
+Extract values from multiple inputs.
+
+```javascript
+const formData = [
+  { id: 'email-input', model: 'email' },
+  { id: 'name-input', model: 'name' }
+];
+
+const values = Input.getValues(formData);
+// { email: 'user@example.com', name: 'John' }
+```
+
+#### Input.setValues(formData, obj, originObj, fileObj)
+
+Set values for multiple inputs.
+
+```javascript
+await Input.setValues(
+  formData,
+  { email: 'new@example.com' },
+  { email: 'new@example.com' },
+  {}
+);
+```
+
+#### getSrcFromFileData(fileData)
+
+Get URL from file data for images/files.
+
+```javascript
+import { getSrcFromFileData } from './Input.js';
+
+const imageUrl = getSrcFromFileData(fileData);
+// Returns blob URL or API endpoint URL
+```
+
+---
+
+## BtnIcon
+
+Customizable icon button component with tooltip support.
+
+### Render
+
+#### BtnIcon.Render(options)
+
+Render a button with icon and optional tooltip.
+
+<ParamField path="options.label" type="string | html" required>
+  Button content (text, icons, or HTML)
+</ParamField>
+<ParamField path="options.class" type="string">
+  CSS classes for button
+</ParamField>
+<ParamField path="options.type" type="string" default="'button'">
+  Button type: `'button'`, `'submit'`
+</ParamField>
+<ParamField path="options.style" type="string">
+  Inline CSS styles
+</ParamField>
+<ParamField path="options.attrs" type="string">
+  Additional HTML attributes
+</ParamField>
+<ParamField path="options.tooltipHtml" type="string | html">
+  Tooltip content
+</ParamField>
+<ParamField path="options.tabHref" type="string">
+  Link URL for anchor element
+</ParamField>
+
+```javascript
+import { BtnIcon } from './BtnIcon.js';
+import { Translate } from './Translate.js';
+
+const saveBtn = await BtnIcon.Render({
+  label: html`<i class="fas fa-save"></i> ${Translate.Render('save')}`,
+  class: 'btn-primary',
+  type: 'submit',
+  tooltipHtml: 'Save changes'
+});
+```
+
+### Icon-Only Button
+
+```javascript
+const deleteBtn = await BtnIcon.Render({
+  label: html`<i class="fas fa-trash"></i>`,
+  class: 'btn-danger btn-icon-only',
+  tooltipHtml: Translate.Render('delete')
+});
+```
+
+### Link Button
+
+```javascript
+const linkBtn = await BtnIcon.Render({
+  label: html`<i class="fas fa-external-link"></i> Visit`,
+  tabHref: 'https://example.com',
+  class: 'btn-link'
+});
+```
+
+---
+
+## ToggleSwitch
+
+Toggle switch and checkbox component.
+
+### Render
+
+#### ToggleSwitch.Render(options)
+
+Render a toggle switch or checkbox.
+
+<ParamField path="options.id" type="string">
+  Unique identifier (auto-generated if not provided)
+</ParamField>
+<ParamField path="options.checked" type="boolean" default="false">
+  Initial checked state
+</ParamField>
+<ParamField path="options.displayMode" type="string">
+  Display mode: `'checkbox'` for checkbox style
+</ParamField>
+<ParamField path="options.containerClass" type="string">
+  CSS class for container
+</ParamField>
+<ParamField path="options.disabledOnClick" type="boolean" default="false">
+  Disable automatic click handling
+</ParamField>
+<ParamField path="options.on.checked" type="function">
+  Callback when toggled on
+</ParamField>
+<ParamField path="options.on.unchecked" type="function">
+  Callback when toggled off
+</ParamField>
+<ParamField path="options.wrapper" type="boolean">
+  Wrap in a labeled container
+</ParamField>
+<ParamField path="options.wrapperLabel" type="string | html">
+  Label text for wrapper
+</ParamField>
+
+```javascript
+import { ToggleSwitch } from './ToggleSwitch.js';
+import { Translate } from './Translate.js';
+
+const toggle = await ToggleSwitch.Render({
+  id: 'dark-mode-toggle',
+  checked: false,
+  on: {
+    checked: () => console.log('Dark mode enabled'),
+    unchecked: () => console.log('Dark mode disabled')
+  }
+});
+```
+
+### Wrapped Toggle with Label
+
+```javascript
+const wrappedToggle = await ToggleSwitch.Render({
+  id: 'notifications-toggle',
+  wrapper: true,
+  wrapperLabel: Translate.Render('enable-notifications'),
+  checked: true
+});
+```
+
+### Checkbox Display Mode
+
+```javascript
+const checkbox = await ToggleSwitch.Render({
+  id: 'agree-terms',
+  displayMode: 'checkbox',
+  checked: false
+});
+```
+
+### Programmatic Control
+
+Toggle programmatically using the Tokens registry:
+
+```javascript
+ToggleSwitch.Tokens['dark-mode-toggle'].click();
+```
+
+---
+
+## DropDown
+
+Dropdown menu with search and multi-select support.
+
+### Render
+
+#### DropDown.Render(options)
+
+Render a dropdown menu.
+
+<ParamField path="options.id" type="string">
+  Unique identifier (auto-generated if not provided)
+</ParamField>
+<ParamField path="options.label" type="string | html" required>
+  Dropdown label text
+</ParamField>
+<ParamField path="options.data" type="array" required>
+  Array of option objects
+</ParamField>
+<ParamField path="options.value" type="string">
+  Initially selected value
+</ParamField>
+<ParamField path="options.type" type="string">
+  Use `'checkbox'` for multi-select
+</ParamField>
+<ParamField path="options.containerClass" type="string">
+  CSS class for container
+</ParamField>
+<ParamField path="options.disableSearchBox" type="boolean" default="false">
+  Hide the search box
+</ParamField>
+<ParamField path="options.resetOption" type="boolean" default="false">
+  Show reset/clear option
+</ParamField>
+<ParamField path="options.open" type="boolean" default="false">
+  Start with dropdown open
+</ParamField>
+
+```javascript
+import { DropDown } from './DropDown.js';
+import { Translate } from './Translate.js';
+
+const languageDropdown = await DropDown.Render({
+  id: 'language-selector',
+  label: html`<i class="fas fa-language"></i> ${Translate.Render('lang')}`,
+  value: 'en',
+  data: [
+    {
+      value: 'en',
+      display: html`<i class="fas fa-flag-usa"></i> English`,
+      data: 'en',
+      onClick: () => setLanguage('en')
+    },
+    {
+      value: 'es',
+      display: html`<i class="fas fa-flag"></i> Español`,
+      data: 'es',
+      onClick: () => setLanguage('es')
+    }
+  ]
+});
+```
+
+### Multi-Select Dropdown
+
+```javascript
+const rolesDropdown = await DropDown.Render({
+  id: 'user-roles',
+  label: Translate.Render('select-role'),
+  type: 'checkbox',
+  resetOption: true,
+  data: [
+    {
+      value: 'admin',
+      display: 'Administrator',
+      checked: false,
+      data: 'admin',
+      onClick: () => {}
+    },
+    {
+      value: 'user',
+      display: 'User',
+      checked: true,
+      data: 'user',
+      onClick: () => {}
+    }
+  ]
+});
+```
+
+### Get Selected Values
+
+```javascript
+// Single select
+const selectedValue = DropDown.Tokens['language-selector'].value;
+
+// Multi-select (array)
+const selectedRoles = DropDown.Tokens['user-roles'].value;
+```
+
+---
+
+## AgGrid
+
+Data grid component powered by AG Grid.
+
+### Render
+
+#### AgGrid.Render(options)
+
+Render a data grid.
+
+<ParamField path="options.id" type="string" required>
+  Unique grid identifier
+</ParamField>
+<ParamField path="options.gridOptions" type="object" required>
+  AG Grid configuration
+</ParamField>
+<ParamField path="options.gridOptions.rowData" type="array">
+  Array of row objects
+</ParamField>
+<ParamField path="options.gridOptions.columnDefs" type="array">
+  Column definitions (auto-generated from rowData if not provided)
+</ParamField>
+<ParamField path="options.style" type="object">
+  CSS styles for grid container
+</ParamField>
+<ParamField path="options.darkTheme" type="boolean">
+  Use dark theme
+</ParamField>
+<ParamField path="options.parentModal" type="string">
+  Parent modal ID for responsive height
+</ParamField>
+<ParamField path="options.usePagination" type="boolean" default="false">
+  Enable pagination controls
+</ParamField>
+
+```javascript
+import { AgGrid } from './AgGrid.js';
+import { darkTheme } from './Css.js';
+
+const grid = await AgGrid.Render({
+  id: 'users-grid',
+  darkTheme,
+  style: {
+    height: '400px',
+    width: '100%'
+  },
+  gridOptions: {
+    rowData: [
+      { name: 'John Doe', email: 'john@example.com', role: 'admin' },
+      { name: 'Jane Smith', email: 'jane@example.com', role: 'user' }
+    ],
+    columnDefs: [
+      { field: 'name', headerName: 'Name' },
+      { field: 'email', headerName: 'Email' },
+      { field: 'role', headerName: 'Role' }
+    ]
+  }
+});
+```
+
+### Custom Column Definitions
+
+```javascript
+const advancedGrid = await AgGrid.Render({
+  id: 'products-grid',
+  gridOptions: {
+    rowData: products,
+    columnDefs: [
+      { field: 'name', sortable: true, filter: true },
+      { field: 'price', sortable: true, filter: 'agNumberColumnFilter' },
+      {
+        field: 'actions',
+        cellRenderer: (params) => {
+          return `<button onclick="editProduct('${params.data.id}')">Edit</button>`;
+        }
+      }
+    ]
+  }
+});
+```
+
+### Update Grid Data
+
+Access grid instance to update data:
+
+```javascript
+AgGrid.grids['users-grid'].setGridOption('rowData', newData);
+```
+
+### Event Handlers
+
+```javascript
+const interactiveGrid = await AgGrid.Render({
+  id: 'events-grid',
+  gridOptions: {
+    rowData: data,
+    onCellClicked: (event) => {
+      console.log('Cell clicked:', event.value);
+    },
+    onRowSelected: (event) => {
+      console.log('Row selected:', event.data);
+    }
+  }
+});
+```

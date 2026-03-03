@@ -1,0 +1,545 @@
+---
+title: Core Components
+description: Foundation components for DOM manipulation, routing, modals, and authentication
+---
+
+## CommonJs
+
+Utility functions for common JavaScript operations.
+
+### Key Functions
+
+#### s4()
+
+Generates a random 4-character hexadecimal string.
+
+```javascript
+import { s4 } from './CommonJs.js';
+
+const randomId = s4(); // e.g., "a3f9"
+```
+
+#### getId(arr, suffix, keyId)
+
+Generates a unique ID that doesn't exist in the provided array or object.
+
+<ParamField path="arr" type="array | object" required>
+  Array of objects or object with ID keys to check against
+</ParamField>
+<ParamField path="suffix" type="string" default="''">
+  Prefix for the generated ID
+</ParamField>
+<ParamField path="keyId" type="string" default="'id'">
+  Property name containing the ID in array elements
+</ParamField>
+
+```javascript
+import { getId } from './CommonJs.js';
+
+const users = [{ id: 'user-123' }, { id: 'user-456' }];
+const newId = getId(users, 'user-'); // e.g., "user-a3f9b2c1d4e5"
+```
+
+#### range(start, end)
+
+Generates an array of numbers within a range.
+
+```javascript
+import { range } from './CommonJs.js';
+
+const nums = range(1, 5); // [1, 2, 3, 4, 5]
+const reverse = range(5, 1); // [5, 4, 3, 2, 1]
+```
+
+#### timer(ms)
+
+Promise-based timeout utility.
+
+```javascript
+import { timer } from './CommonJs.js';
+
+await timer(1000); // Wait 1 second
+console.log('Done waiting');
+```
+
+#### newInstance(obj)
+
+Creates a deep copy of an object using JSON serialization.
+
+```javascript
+import { newInstance } from './CommonJs.js';
+
+const original = { name: 'John', tags: ['dev', 'admin'] };
+const copy = newInstance(original);
+```
+
+---
+
+## VanillaJs
+
+DOM manipulation utilities for querying and modifying elements.
+
+### Query Selectors
+
+#### s(selector)
+
+Query a single element (shorthand for `document.querySelector`).
+
+<ParamField path="selector" type="string" required>
+  CSS selector string
+</ParamField>
+
+```javascript
+import { s } from './VanillaJs.js';
+
+const button = s('.btn-submit');
+const header = s('#main-header');
+```
+
+#### sa(selector)
+
+Query all matching elements (shorthand for `document.querySelectorAll`).
+
+```javascript
+import { sa } from './VanillaJs.js';
+
+const buttons = sa('.btn'); // NodeList
+buttons.forEach(btn => console.log(btn));
+```
+
+### DOM Manipulation
+
+#### htmls(selector, html)
+
+Set the innerHTML of an element.
+
+```javascript
+import { htmls } from './VanillaJs.js';
+
+htmls('.content', html`<h1>New Content</h1>`);
+```
+
+#### append(selector, html)
+
+Insert HTML at the end of an element.
+
+```javascript
+import { append } from './VanillaJs.js';
+
+append('.list', html`<li>New Item</li>`);
+```
+
+#### prepend(selector, html)
+
+Insert HTML at the beginning of an element.
+
+```javascript
+import { prepend } from './VanillaJs.js';
+
+prepend('.list', html`<li>First Item</li>`);
+```
+
+### Utilities
+
+#### copyData(text)
+
+Copy text to clipboard.
+
+```javascript
+import { copyData } from './VanillaJs.js';
+
+await copyData('Hello World');
+```
+
+#### pasteData()
+
+Read text from clipboard.
+
+```javascript
+import { pasteData } from './VanillaJs.js';
+
+const text = await pasteData();
+```
+
+#### fullScreenIn() / fullScreenOut()
+
+Enter or exit fullscreen mode.
+
+```javascript
+import { fullScreenIn, fullScreenOut, checkFullScreen } from './VanillaJs.js';
+
+if (!checkFullScreen()) {
+  await fullScreenIn();
+} else {
+  await fullScreenOut();
+}
+```
+
+#### getLang()
+
+Get the current language code from localStorage or browser settings.
+
+```javascript
+import { getLang } from './VanillaJs.js';
+
+const lang = getLang(); // 'en' or 'es'
+```
+
+---
+
+## Router
+
+Client-side routing with history management and query parameters.
+
+### Core Functions
+
+#### LoadRouter(RouterInstance)
+
+Initialize the router with routes configuration.
+
+<ParamField path="RouterInstance" type="object" required>
+  Object with `Routes` function returning route definitions
+</ParamField>
+
+```javascript
+import { LoadRouter } from './Router.js';
+
+LoadRouter({
+  Routes: () => ({
+    '/': { render: () => renderHome() },
+    '/about': { render: () => renderAbout() },
+    '/user': { render: () => renderUser() }
+  })
+});
+```
+
+#### setPath(path, options)
+
+Navigate to a new path.
+
+<ParamField path="path" type="string" default="'/'">
+  URL path to navigate to
+</ParamField>
+<ParamField path="options" type="object">
+  Navigation options
+</ParamField>
+<ParamField path="options.replace" type="boolean" default="false">
+  Use replaceState instead of pushState
+</ParamField>
+<ParamField path="options.force" type="boolean" default="false">
+  Navigate even if already on the same path
+</ParamField>
+<ParamField path="options.removeSearch" type="boolean" default="false">
+  Remove query string from URL
+</ParamField>
+<ParamField path="options.removeHash" type="boolean" default="false">
+  Remove hash from URL
+</ParamField>
+
+```javascript
+import { setPath } from './Router.js';
+
+setPath('/about');
+setPath('/users?page=2');
+setPath('/home', { replace: true });
+```
+
+#### getQueryParams()
+
+Get current query parameters as an object.
+
+```javascript
+import { getQueryParams } from './Router.js';
+
+// URL: /users?page=2&sort=name
+const params = getQueryParams();
+console.log(params); // { page: '2', sort: 'name' }
+```
+
+#### setQueryParams(newParams, options)
+
+Set or update query parameters.
+
+<ParamField path="newParams" type="object" required>
+  Object with parameter keys and values
+</ParamField>
+<ParamField path="options.replace" type="boolean" default="true">
+  Use replaceState instead of pushState
+</ParamField>
+
+```javascript
+import { setQueryParams } from './Router.js';
+
+setQueryParams({ page: 3, sort: 'date' });
+setQueryParams({ filter: null }); // Remove filter param
+```
+
+#### getProxyPath()
+
+Get the base path for the application.
+
+```javascript
+import { getProxyPath } from './Router.js';
+
+const basePath = getProxyPath(); // '/' or '/app/'
+```
+
+### Events
+
+#### RouterEvents
+
+Register listeners for route changes.
+
+```javascript
+import { RouterEvents } from './Router.js';
+
+RouterEvents['my-listener'] = ({ path, pushPath, route }) => {
+  console.log('Navigated to:', route);
+};
+```
+
+---
+
+## Modal
+
+Modal dialog system with support for slide menus, views, and drag-and-drop.
+
+### Render
+
+#### Modal.Render(options)
+
+Create and display a modal dialog.
+
+<ParamField path="options.id" type="string">
+  Unique modal identifier (auto-generated if not provided)
+</ParamField>
+<ParamField path="options.title" type="string | html">
+  Modal title
+</ParamField>
+<ParamField path="options.html" type="function" required>
+  Function returning modal content HTML
+</ParamField>
+<ParamField path="options.mode" type="string">
+  Modal mode: `'view'`, `'slide-menu'`, `'slide-menu-right'`, `'slide-menu-left'`
+</ParamField>
+<ParamField path="options.barConfig" type="object">
+  Configuration for modal title bar buttons
+</ParamField>
+<ParamField path="options.style" type="object">
+  CSS styles for modal container
+</ParamField>
+<ParamField path="options.dragDisabled" type="boolean" default="false">
+  Disable modal dragging
+</ParamField>
+<ParamField path="options.maximize" type="boolean" default="false">
+  Start modal maximized
+</ParamField>
+
+```javascript
+import { Modal } from './Modal.js';
+import { Themes } from './Css.js';
+
+const { barConfig } = await Themes['default']();
+
+await Modal.Render({
+  id: 'settings-modal',
+  title: 'Settings',
+  barConfig,
+  html: () => html`
+    <div class="section-mp">
+      <h2>Application Settings</h2>
+      <p>Configure your preferences here.</p>
+    </div>
+  `,
+  style: {
+    width: '600px',
+    height: '400px'
+  }
+});
+```
+
+### Slide Menu Mode
+
+```javascript
+await Modal.Render({
+  id: 'main-menu',
+  mode: 'slide-menu',
+  title: 'Menu',
+  barConfig,
+  html: () => html`
+    <div class="menu-items">
+      <!-- Menu content -->
+    </div>
+  `
+});
+```
+
+### View Mode
+
+View mode creates a full-page modal that integrates with routing.
+
+```javascript
+await Modal.Render({
+  id: 'user-profile',
+  mode: 'view',
+  route: 'profile',
+  RouterInstance: { Routes: () => ({ /* routes */ }) },
+  html: () => html`
+    <!-- Full page content -->
+  `
+});
+```
+
+### Event Listeners
+
+Modals support various lifecycle events:
+
+```javascript
+// After modal is rendered
+Modal.Data['my-modal'].onCloseListener['cleanup'] = () => {
+  console.log('Modal closing');
+};
+
+Modal.Data['my-modal'].onReloadModalListener['refresh'] = () => {
+  console.log('Modal reloaded');
+};
+```
+
+---
+
+## Auth
+
+Authentication state management and session lifecycle control.
+
+### Methods
+
+#### Auth.sessionIn(userServicePayload)
+
+Establish a user session or guest session.
+
+<ParamField path="userServicePayload" type="object">
+  Payload from login/signup containing token and user data
+</ParamField>
+
+```javascript
+import { Auth } from './Auth.js';
+
+const result = await Auth.sessionIn();
+console.log('Current user:', result.user);
+```
+
+#### Auth.sessionOut()
+
+End user session and create a new guest session.
+
+```javascript
+import { Auth } from './Auth.js';
+
+await Auth.sessionOut();
+```
+
+#### Auth.getToken() / Auth.setToken(value)
+
+Get or set the user access token.
+
+```javascript
+import { Auth } from './Auth.js';
+
+Auth.setToken('eyJhbGc...');
+const token = Auth.getToken();
+```
+
+#### Auth.getJWT()
+
+Get the Bearer token string for API requests.
+
+```javascript
+import { Auth } from './Auth.js';
+
+const headers = {
+  'Authorization': Auth.getJWT() // 'Bearer eyJhbGc...'
+};
+```
+
+#### Auth.decodeJwt(token)
+
+Decode JWT payload.
+
+```javascript
+import { Auth } from './Auth.js';
+
+const payload = Auth.decodeJwt(token);
+console.log('User ID:', payload.userId);
+```
+
+---
+
+## SocketIo
+
+WebSocket client for real-time communication.
+
+### Initialization
+
+#### SocketIo.Init(options)
+
+Initialize WebSocket connection.
+
+<ParamField path="options.host" type="string">
+  WebSocket server URL (uses default if not provided)
+</ParamField>
+<ParamField path="options.channels" type="object">
+  Channel definitions for custom events
+</ParamField>
+
+```javascript
+import { SocketIo } from './SocketIo.js';
+
+await SocketIo.Init({
+  channels: {
+    'chat-message': {},
+    'user-update': {}
+  }
+});
+```
+
+### Events
+
+Register event listeners for WebSocket events:
+
+```javascript
+// Connection events
+SocketIo.Event.connect['my-handler'] = () => {
+  console.log('Connected to WebSocket');
+};
+
+SocketIo.Event.disconnect['my-handler'] = (reason) => {
+  console.log('Disconnected:', reason);
+};
+
+// Custom channel events
+SocketIo.Event['chat-message']['handler'] = (args) => {
+  console.log('New message:', args);
+};
+```
+
+### Emit
+
+#### SocketIo.Emit(channel, payload)
+
+Send a message to the server.
+
+<ParamField path="channel" type="string" required>
+  Event channel name
+</ParamField>
+<ParamField path="payload" type="object" required>
+  Data to send
+</ParamField>
+
+```javascript
+import { SocketIo } from './SocketIo.js';
+
+SocketIo.Emit('chat-message', {
+  text: 'Hello!',
+  userId: '123'
+});
+```
