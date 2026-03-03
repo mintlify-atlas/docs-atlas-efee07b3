@@ -1,0 +1,247 @@
+---
+title: Crypto API
+description: Cryptographic operations for signature verification and key management
+---
+
+The Crypto API provides endpoints for managing public keys and verifying digital signatures using ECDSA.
+
+## Authentication
+
+- `POST /` requires authentication
+- All other endpoints are public
+
+## Data Model
+
+Public keys are stored with the following structure:
+
+<ResponseField name="format" type="string" required>
+  The key format (e.g., "jwk")
+</ResponseField>
+
+<ResponseField name="data" type="string" required>
+  The key data (must be unique)
+</ResponseField>
+
+<ResponseField name="algorithm" type="object" required>
+  Algorithm configuration
+  
+  <Expandable title="properties">
+    <ResponseField name="name" type="string" required>
+      Algorithm name (e.g., "ECDSA")
+    </ResponseField>
+    
+    <ResponseField name="namedCurve" type="string" required>
+      Elliptic curve name (e.g., "P-384")
+    </ResponseField>
+    
+    <ResponseField name="hash" type="string" required>
+      Hash algorithm (e.g., "SHA-256")
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+## Endpoints
+
+### Verify Signature
+
+Verifies a digital signature using ECDSA with P-384 curve and SHA-256 hash.
+
+<CodeGroup>
+```bash cURL
+curl -X POST "https://api.example.com/crypto/verify" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "publicKey": {
+      "kty": "EC",
+      "crv": "P-384",
+      "x": "...",
+      "y": "..."
+    },
+    "signature": "base64EncodedSignature",
+    "payload": {
+      "data": "message to verify"
+    }
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.example.com/crypto/verify', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    publicKey: {
+      kty: 'EC',
+      crv: 'P-384',
+      x: '...',
+      y: '...'
+    },
+    signature: 'base64EncodedSignature',
+    payload: {
+      data: 'message to verify'
+    }
+  })
+});
+const result = await response.json();
+```
+</CodeGroup>
+
+#### Request Body
+
+<ParamField body="publicKey" type="object" required>
+  JWK format public key for ECDSA verification
+</ParamField>
+
+<ParamField body="signature" type="string" required>
+  Base64-encoded signature to verify
+</ParamField>
+
+<ParamField body="payload" type="object" required>
+  The payload that was signed (will be JSON stringified for verification)
+</ParamField>
+
+#### Response
+
+<ResponseField name="status" type="string">
+  Response status: `success` or `error`
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Verification result
+  
+  <Expandable title="properties">
+    <ResponseField name="isValid" type="boolean">
+      `true` if signature is valid, `false` otherwise
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json Success Response
+{
+  "status": "success",
+  "data": {
+    "isValid": true
+  }
+}
+```
+</ResponseExample>
+
+### Register Public Key
+
+Registers a new public key for the authenticated user.
+
+<Note>
+Requires authentication. The public key will be associated with the authenticated user.
+</Note>
+
+<CodeGroup>
+```bash cURL
+curl -X POST "https://api.example.com/crypto" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{
+    "format": "jwk",
+    "data": "key-data-string",
+    "algorithm": {
+      "name": "ECDSA",
+      "namedCurve": "P-384",
+      "hash": "SHA-256"
+    }
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.example.com/crypto', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer YOUR_TOKEN'
+  },
+  body: JSON.stringify({
+    format: 'jwk',
+    data: 'key-data-string',
+    algorithm: {
+      name: 'ECDSA',
+      namedCurve: 'P-384',
+      hash: 'SHA-256'
+    }
+  })
+});
+const result = await response.json();
+```
+</CodeGroup>
+
+#### Request Body
+
+<ParamField body="format" type="string" required>
+  Key format (e.g., "jwk")
+</ParamField>
+
+<ParamField body="data" type="string" required>
+  The key data (must be unique across all users)
+</ParamField>
+
+<ParamField body="algorithm" type="object" required>
+  Algorithm configuration
+  
+  <Expandable title="properties">
+    <ParamField body="name" type="string" required>
+      Algorithm name (e.g., "ECDSA")
+    </ParamField>
+    
+    <ParamField body="namedCurve" type="string" required>
+      Elliptic curve name (e.g., "P-384")
+    </ParamField>
+    
+    <ParamField body="hash" type="string" required>
+      Hash algorithm (e.g., "SHA-256")
+    </ParamField>
+  </Expandable>
+</ParamField>
+
+#### Response
+
+<ResponseField name="status" type="string">
+  Response status: `success` or `error`
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  The created public key document including MongoDB `_id`
+</ResponseField>
+
+<ResponseExample>
+```json Success Response
+{
+  "status": "success",
+  "data": {
+    "_id": "507f1f77bcf86cd799439011",
+    "format": "jwk",
+    "data": "key-data-string",
+    "algorithm": {
+      "name": "ECDSA",
+      "namedCurve": "P-384",
+      "hash": "SHA-256"
+    }
+  }
+}
+```
+</ResponseExample>
+
+## Error Handling
+
+All endpoints return a consistent error format:
+
+```json
+{
+  "status": "error",
+  "message": "Error description"
+}
+```
+
+Common errors:
+- Duplicate key data (HTTP 400)
+- Invalid signature format (HTTP 400)
+- Missing required fields (HTTP 400)
+- Authentication required (HTTP 401)

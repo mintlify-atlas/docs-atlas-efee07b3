@@ -1,0 +1,333 @@
+---
+title: "underpost ssh"
+description: "Manage SSH credentials, users, and sessions for remote cluster access"
+---
+
+## Overview
+
+The `underpost ssh` command manages SSH key generation, user credentials, and SSH service configuration for secure remote access to cluster nodes and services.
+
+## Usage
+
+```bash
+underpost ssh [options]
+```
+
+## Options
+
+### Configuration Context
+
+<ParamField path="--deploy-id" type="string">
+  Set deploy ID context for SSH operations. Stores credentials in `./engine-private/conf/[deploy-id]/conf.node.json`
+</ParamField>
+
+### User Management
+
+<ParamField path="--user" type="string" default="root">
+  SSH user name for the operation
+</ParamField>
+
+<ParamField path="--password" type="string">
+  SSH user password (auto-generated if not provided, 16 characters)
+</ParamField>
+
+<ParamField path="--host" type="string">
+  SSH host address (defaults to public IP if not specified)
+</ParamField>
+
+<ParamField path="--port" type="number" default="22">
+  SSH port number
+</ParamField>
+
+<ParamField path="--groups" type="string" default="wheel">
+  Comma-separated list of groups for the SSH user
+</ParamField>
+
+### User Operations
+
+<ParamField path="--user-add" type="boolean">
+  Add a new SSH user and generate ED25519 key pair
+</ParamField>
+
+<ParamField path="--user-remove" type="boolean">
+  Remove an SSH user and cleanup keys
+</ParamField>
+
+<ParamField path="--user-ls" type="boolean">
+  List all SSH users and groups from the system
+</ParamField>
+
+### Key Management
+
+<ParamField path="--generate" type="boolean">
+  Generate new SSH ED25519 key pair and store it in private keys file storage
+</ParamField>
+
+<ParamField path="--keys-list" type="boolean">
+  List all authorized SSH keys from `~/.ssh/authorized_keys`
+</ParamField>
+
+<ParamField path="--hosts-list" type="boolean">
+  List all known SSH hosts from `~/.ssh/known_hosts`
+</ParamField>
+
+<ParamField path="--key-test" type="boolean">
+  Test SSH key using ssh-keygen
+</ParamField>
+
+### SSH Service
+
+<ParamField path="--start" type="boolean">
+  Start SSH service with hardened configuration
+</ParamField>
+
+<ParamField path="--stop" type="boolean">
+  Stop SSH service
+</ParamField>
+
+<ParamField path="--status" type="boolean">
+  Check SSH service status
+</ParamField>
+
+### Security Options
+
+<ParamField path="--disable-password" type="boolean">
+  Enable passwordless sudo and add SSH key restrictions (no-port-forwarding, no-X11-forwarding, no-agent-forwarding)
+</ParamField>
+
+<ParamField path="--reset" type="boolean">
+  Reset SSH configuration by clearing `authorized_keys` and `known_hosts`
+</ParamField>
+
+### Utilities
+
+<ParamField path="--filter" type="string">
+  Filter SSH user credentials from private keys file storage
+</ParamField>
+
+<ParamField path="--connect-uri" type="boolean">
+  Display SSH connection URI
+</ParamField>
+
+<ParamField path="--copy" type="boolean">
+  Copy SSH connection URI to clipboard
+</ParamField>
+
+## Examples
+
+### Add a new SSH user
+
+```bash
+underpost ssh --user-add --user admin --deploy-id dd-default
+```
+
+This command:
+- Creates system user "admin" with auto-generated password
+- Generates ED25519 key pair
+- Configures authorized_keys and known_hosts
+- Backs up keys to `./engine-private/conf/dd-default/users/admin/`
+- Stores credentials in `conf.node.json`
+
+### Add user with custom password and groups
+
+```bash
+underpost ssh --user-add --user deploy --password mySecurePass123 --groups "wheel,docker" --deploy-id dd-default
+```
+
+### Add user with passwordless sudo
+
+```bash
+underpost ssh --user-add --user admin --disable-password --deploy-id dd-default
+```
+
+This enables passwordless sudo and adds SSH restrictions.
+
+### Remove SSH user
+
+```bash
+underpost ssh --user-remove --user olduser --deploy-id dd-default
+```
+
+Cleans up:
+- System user account
+- Home directory
+- Sudoers file
+- Backed up keys in engine-private
+- Config entry
+
+### Generate root SSH keys
+
+```bash
+underpost ssh --generate --user root --password myRootPass --host 192.168.1.100
+```
+
+Generates ED25519 key pair and stores in:
+- `~/.ssh/id_rsa` and `~/.ssh/id_rsa.pub`
+- `./engine-private/deploy/id_rsa` and `./engine-private/deploy/id_rsa.pub`
+
+### Start hardened SSH service
+
+```bash
+underpost ssh --start --user root --port 22
+```
+
+Configures SSH daemon with:
+- Key-only authentication (no passwords)
+- Root login disabled
+- ED25519 host key
+- X11 forwarding disabled
+- TCP forwarding disabled
+- Client alive intervals to prevent ghost connections
+
+### Get SSH connection URI
+
+```bash
+underpost ssh --connect-uri --user admin --deploy-id dd-default
+```
+
+Output:
+```
+ssh admin@192.168.1.100 -i /home/admin/.ssh/id_rsa -p 22
+```
+
+### Copy connection URI to clipboard
+
+```bash
+underpost ssh --connect-uri --copy --user admin --deploy-id dd-default
+```
+
+### List all users and groups
+
+```bash
+underpost ssh --user-ls
+```
+
+### List users filtered by keyword
+
+```bash
+underpost ssh --user-ls --filter admin
+```
+
+### List authorized keys
+
+```bash
+underpost ssh --keys-list --user admin
+```
+
+### List known hosts
+
+```bash
+underpost ssh --hosts-list --user admin
+```
+
+### Test SSH key
+
+```bash
+underpost ssh --key-test --user admin --password mypass
+```
+
+### Reset SSH configuration
+
+```bash
+underpost ssh --reset --user admin
+```
+
+Clears `authorized_keys` and `known_hosts` for the user.
+
+## SSH Service Configuration
+
+When started with `--start`, the SSH daemon is configured with these hardened settings:
+
+- **Port**: Customizable (default 22)
+- **Host Keys**: ED25519 only (modern & secure)
+- **Authentication**: Public key only (passwords disabled)
+- **Root Login**: Disabled (use sudo instead)
+- **Security**:
+  - StrictModes enabled
+  - Max 3 auth tries
+  - 60s login grace time
+- **Session Management**:
+  - ClientAliveInterval: 300s
+  - ClientAliveCountMax: 0 (disconnect idle sessions)
+- **Restrictions**:
+  - X11 forwarding disabled
+  - TCP forwarding disabled
+  - Tunneling disabled
+  - DNS checks disabled
+
+## Key Storage Locations
+
+### System SSH Files
+
+```
+/home/[user]/.ssh/
+├── id_rsa              # Private key (chmod 600)
+├── id_rsa.pub          # Public key (chmod 644)
+├── authorized_keys     # Authorized public keys (chmod 600)
+└── known_hosts         # Known host signatures (chmod 644)
+```
+
+### Backup Location (with --deploy-id)
+
+```
+engine-private/conf/[deploy-id]/
+├── conf.node.json      # User credentials config
+└── users/
+    └── [username]/
+        ├── id_rsa      # Private key backup
+        └── id_rsa.pub  # Public key backup
+```
+
+## Configuration File Structure
+
+When using `--deploy-id`, user credentials are stored in `conf.node.json`:
+
+```json
+{
+  "users": {
+    "admin": {
+      "user": "admin",
+      "password": "generatedPassword123",
+      "host": "192.168.1.100",
+      "port": 22,
+      "groups": "wheel",
+      "keyPath": "/home/admin/.ssh/id_rsa",
+      "pubKeyPath": "/home/admin/.ssh/id_rsa.pub",
+      "privateKeyCopyPath": "./engine-private/conf/dd-default/users/admin/id_rsa",
+      "publicKeyCopyPath": "./engine-private/conf/dd-default/users/admin/id_rsa.pub"
+    }
+  }
+}
+```
+
+## Security Best Practices
+
+<Steps>
+  <Step title="Use passwordless authentication">
+    Always use `--disable-password` for production systems:
+    ```bash
+    underpost ssh --user-add --user deploy --disable-password --deploy-id prod
+    ```
+  </Step>
+  <Step title="Restrict user groups">
+    Add users only to necessary groups:
+    ```bash
+    underpost ssh --user-add --user app --groups "docker" --deploy-id prod
+    ```
+  </Step>
+  <Step title="Use non-standard ports">
+    Change SSH port to reduce automated attacks:
+    ```bash
+    underpost ssh --start --port 2222
+    ```
+  </Step>
+  <Step title="Backup keys securely">
+    Always use `--deploy-id` to backup keys to private repository
+  </Step>
+</Steps>
+
+## Related Commands
+
+- [`underpost config`](/cli/commands/config) - Store default SSH credentials
+- [`underpost run ssh-deploy`](/cli/commands/run) - Deploy via SSH
+- [`underpost cron`](/cli/commands/cron) - Use `--ssh` flag for remote cron execution

@@ -1,0 +1,204 @@
+---
+title: underpost install
+description: Quickly import Underpost npm dependencies by copying them
+---
+
+The `underpost install` command quickly imports Underpost npm dependencies by copying them from the global Underpost installation to your current project. This provides a fast alternative to running `npm install` for Underpost dependencies.
+
+## Usage
+
+```bash
+underpost install
+```
+
+## Description
+
+This command copies the `node_modules` directory from the global Underpost installation to the current working directory. This is useful for:
+
+- **Fast dependency setup** - Skip npm install for Underpost dependencies
+- **Offline development** - Work without internet connectivity
+- **Consistent versions** - Ensure all dependencies match the Underpost installation
+- **Quick prototyping** - Rapidly set up development environments
+
+## How It Works
+
+1. Locates the global Underpost installation directory
+2. Copies the entire `node_modules` folder to `./node_modules`
+3. Makes all Underpost dependencies immediately available
+
+## Examples
+
+### Quick Install
+
+```bash
+underpost install
+```
+
+This copies all dependencies from the Underpost installation.
+
+### New Project Setup
+
+<Steps>
+  <Step title="Create project directory">
+    ```bash
+    mkdir my-project
+    cd my-project
+    ```
+  </Step>
+  
+  <Step title="Initialize package.json">
+    ```bash
+    npm init -y
+    ```
+  </Step>
+  
+  <Step title="Install Underpost dependencies">
+    ```bash
+    underpost install
+    ```
+  </Step>
+  
+  <Step title="Start development">
+    ```bash
+    underpost start dd-default development
+    ```
+  </Step>
+</Steps>
+
+### Rapid Prototyping
+
+```bash
+# Create and setup new project quickly
+mkdir quick-project && cd quick-project
+underpost install
+underpost new --deploy-id dd-proto
+```
+
+### Offline Development
+
+```bash
+# Copy dependencies while online
+underpost install
+
+# Later, work offline with all dependencies available
+underpost start dd-default development
+```
+
+## When to Use
+
+### Best Use Cases
+
+- **Quick prototypes** - Rapidly set up new projects
+- **Development environments** - Fast dependency setup on new machines
+- **CI/CD pipelines** - Speed up build processes
+- **Offline work** - Develop without internet access
+- **Testing** - Create isolated test environments quickly
+
+### When NOT to Use
+
+- **Production deployments** - Use standard `npm install` for production
+- **Custom dependency versions** - When you need specific package versions
+- **Non-Underpost projects** - For projects not using Underpost
+
+## Comparison with npm install
+
+| Feature | `underpost install` | `npm install` |
+|---------|-------------------|---------------|
+| Speed | Very fast (copy operation) | Slower (downloads and builds) |
+| Internet required | No | Yes |
+| Custom versions | No (uses Underpost versions) | Yes |
+| Production use | Not recommended | Recommended |
+| Development use | Excellent | Standard |
+
+## Performance
+
+The `underpost install` command is significantly faster than `npm install` because it:
+
+- Skips network downloads
+- Avoids package resolution
+- Bypasses build steps
+- Performs a simple file copy
+
+Typical times:
+- `underpost install`: 5-30 seconds
+- `npm install`: 1-5 minutes
+
+## Troubleshooting
+
+### Command Not Found
+
+If `underpost install` fails, ensure Underpost is installed globally:
+
+```bash
+npm install -g underpost
+underpost --version
+```
+
+### Permission Issues
+
+If you encounter permission errors:
+
+```bash
+# Linux/Mac
+sudo underpost install
+
+# Or fix permissions
+sudo chown -R $USER:$USER ./node_modules
+```
+
+### Incomplete Dependencies
+
+If dependencies are missing after install:
+
+```bash
+# Fall back to standard npm install
+npm install
+
+# Or reinstall Underpost globally
+npm install -g underpost
+underpost install
+```
+
+### Version Conflicts
+
+If you need specific package versions:
+
+```bash
+# Use standard npm install instead
+npm install
+
+# Or install specific packages after
+underpost install
+npm install specific-package@version
+```
+
+## Alternative Methods
+
+### Standard npm Install
+
+```bash
+npm install
+```
+
+### Install Specific Packages
+
+```bash
+underpost install
+npm install --save express mongoose
+```
+
+### Development vs Production
+
+```bash
+# Development (fast)
+underpost install
+
+# Production (standard)
+npm ci
+```
+
+## Related Commands
+
+- [underpost root](/cli/commands/root) - Display npm root path
+- [underpost new](/cli/commands/new) - Initialize new projects
+- [underpost start](/cli/commands/start) - Start application servers

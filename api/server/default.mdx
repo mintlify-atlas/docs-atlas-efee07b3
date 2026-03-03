@@ -1,0 +1,415 @@
+---
+title: Default API
+description: Default public API for basic CRUD operations
+---
+
+The Default API provides generic CRUD (Create, Read, Update, Delete) endpoints with pagination and query support. All endpoints are publicly accessible.
+
+## Authentication
+
+No authentication required for any endpoints.
+
+## Data Model
+
+The default model uses a flexible schema with indexed fields:
+
+<ResponseField name="_id" type="string">
+  MongoDB document ID
+</ResponseField>
+
+<ResponseField name="0" type="string">
+  First indexed field
+</ResponseField>
+
+<ResponseField name="1" type="string">
+  Second indexed field
+</ResponseField>
+
+<ResponseField name="2" type="string">
+  Third indexed field
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  ISO 8601 timestamp of creation
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp of last update
+</ResponseField>
+
+## Endpoints
+
+### Create Document
+
+Creates a new document.
+
+<CodeGroup>
+```bash cURL
+curl -X POST "https://api.example.com/default" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "0": "value1",
+    "1": "value2",
+    "2": "value3"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.example.com/default', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    '0': 'value1',
+    '1': 'value2',
+    '2': 'value3'
+  })
+});
+const result = await response.json();
+```
+</CodeGroup>
+
+#### Request Body
+
+<ParamField body="0" type="string">
+  First field value
+</ParamField>
+
+<ParamField body="1" type="string">
+  Second field value
+</ParamField>
+
+<ParamField body="2" type="string">
+  Third field value
+</ParamField>
+
+#### Response
+
+<ResponseField name="status" type="string">
+  Response status: `success` or `error`
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  The created document with `_id`, timestamps, and all provided fields
+</ResponseField>
+
+<ResponseExample>
+```json Success Response
+{
+  "status": "success",
+  "data": {
+    "_id": "507f191e810c19729de860ea",
+    "0": "value1",
+    "1": "value2",
+    "2": "value3",
+    "createdAt": "2026-03-03T10:00:00.000Z",
+    "updatedAt": "2026-03-03T10:00:00.000Z"
+  }
+}
+```
+</ResponseExample>
+
+### List Documents
+
+Retrieves documents with pagination and filtering support.
+
+<CodeGroup>
+```bash cURL - Basic
+curl -X GET "https://api.example.com/default"
+```
+
+```bash cURL - With Pagination
+curl -X GET "https://api.example.com/default?page=2&limit=20"
+```
+
+```bash cURL - With Filtering
+curl -X GET "https://api.example.com/default?0=value1&sort=-createdAt"
+```
+
+```javascript JavaScript
+// Basic query
+const response = await fetch('https://api.example.com/default');
+const result = await response.json();
+
+// With pagination and filtering
+const response = await fetch(
+  'https://api.example.com/default?page=2&limit=20&0=value1&sort=-createdAt'
+);
+const result = await response.json();
+```
+</CodeGroup>
+
+#### Query Parameters
+
+<ParamField query="page" type="integer" default="1">
+  Page number for pagination
+</ParamField>
+
+<ParamField query="limit" type="integer" default="10">
+  Number of documents per page
+</ParamField>
+
+<ParamField query="sort" type="string" default="-createdAt">
+  Sort field (prefix with `-` for descending order)
+</ParamField>
+
+<ParamField query="0" type="string">
+  Filter by first field value
+</ParamField>
+
+<ParamField query="1" type="string">
+  Filter by second field value
+</ParamField>
+
+<ParamField query="2" type="string">
+  Filter by third field value
+</ParamField>
+
+<Info>
+The query parser supports MongoDB-style filtering. Any field from the model can be used as a query parameter.
+</Info>
+
+#### Response
+
+<ResponseField name="status" type="string">
+  Response status: `success` or `error`
+</ResponseField>
+
+<ResponseField name="data" type="object">
+  Paginated results object
+  
+  <Expandable title="properties">
+    <ResponseField name="data" type="array">
+      Array of document objects
+    </ResponseField>
+    
+    <ResponseField name="total" type="integer">
+      Total number of documents matching the query
+    </ResponseField>
+    
+    <ResponseField name="page" type="integer">
+      Current page number
+    </ResponseField>
+    
+    <ResponseField name="totalPages" type="integer">
+      Total number of pages
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json Success Response
+{
+  "status": "success",
+  "data": {
+    "data": [
+      {
+        "_id": "507f191e810c19729de860ea",
+        "0": "value1",
+        "1": "value2",
+        "2": "value3",
+        "createdAt": "2026-03-03T10:00:00.000Z",
+        "updatedAt": "2026-03-03T10:00:00.000Z"
+      },
+      {
+        "_id": "507f191e810c19729de860eb",
+        "0": "value4",
+        "1": "value5",
+        "2": "value6",
+        "createdAt": "2026-03-03T11:00:00.000Z",
+        "updatedAt": "2026-03-03T11:00:00.000Z"
+      }
+    ],
+    "total": 42,
+    "page": 1,
+    "totalPages": 5
+  }
+}
+```
+</ResponseExample>
+
+### Get Document by ID
+
+Retrieves a specific document by ID.
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.example.com/default/507f191e810c19729de860ea"
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://api.example.com/default/507f191e810c19729de860ea'
+);
+const result = await response.json();
+```
+</CodeGroup>
+
+#### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Document ID
+</ParamField>
+
+#### Response
+
+<ResponseExample>
+```json Success Response
+{
+  "status": "success",
+  "data": {
+    "_id": "507f191e810c19729de860ea",
+    "0": "value1",
+    "1": "value2",
+    "2": "value3",
+    "createdAt": "2026-03-03T10:00:00.000Z",
+    "updatedAt": "2026-03-03T10:00:00.000Z"
+  }
+}
+```
+</ResponseExample>
+
+### Update Document
+
+Updates an existing document.
+
+<CodeGroup>
+```bash cURL
+curl -X PUT "https://api.example.com/default/507f191e810c19729de860ea" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "0": "updated_value1",
+    "1": "updated_value2"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://api.example.com/default/507f191e810c19729de860ea',
+  {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      '0': 'updated_value1',
+      '1': 'updated_value2'
+    })
+  }
+);
+const result = await response.json();
+```
+</CodeGroup>
+
+#### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Document ID to update
+</ParamField>
+
+#### Request Body
+
+Any fields to update. Only provided fields will be modified.
+
+#### Response
+
+<ResponseExample>
+```json Success Response
+{
+  "status": "success",
+  "data": {
+    "_id": "507f191e810c19729de860ea",
+    "0": "updated_value1",
+    "1": "updated_value2",
+    "2": "value3",
+    "createdAt": "2026-03-03T10:00:00.000Z",
+    "updatedAt": "2026-03-03T12:00:00.000Z"
+  }
+}
+```
+</ResponseExample>
+
+### Delete Document
+
+Deletes one or all documents.
+
+<Warning>
+Deleting without an ID will remove ALL documents. Use with extreme caution.
+</Warning>
+
+<CodeGroup>
+```bash Delete Single Document
+curl -X DELETE "https://api.example.com/default/507f191e810c19729de860ea"
+```
+
+```bash Delete All Documents
+curl -X DELETE "https://api.example.com/default"
+```
+
+```javascript Delete Single Document
+const response = await fetch(
+  'https://api.example.com/default/507f191e810c19729de860ea',
+  {
+    method: 'DELETE'
+  }
+);
+const result = await response.json();
+```
+
+```javascript Delete All Documents
+const response = await fetch('https://api.example.com/default', {
+  method: 'DELETE'
+});
+const result = await response.json();
+```
+</CodeGroup>
+
+#### Path Parameters
+
+<ParamField path="id" type="string">
+  Document ID to delete (optional - omit to delete all)
+</ParamField>
+
+#### Response
+
+<ResponseExample>
+```json Single Delete Response
+{
+  "status": "success",
+  "data": {
+    "_id": "507f191e810c19729de860ea",
+    "0": "value1",
+    "1": "value2",
+    "2": "value3"
+  }
+}
+```
+
+```json Delete All Response
+{
+  "status": "success",
+  "data": {
+    "deletedCount": 42
+  }
+}
+```
+</ResponseExample>
+
+## Error Handling
+
+All endpoints return a consistent error format:
+
+```json
+{
+  "status": "error",
+  "message": "Error description"
+}
+```
+
+HTTP status code for errors: `400`
+
+Common errors:
+- Invalid document ID format
+- Document not found
+- Database connection error

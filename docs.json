@@ -76,7 +76,12 @@
             "pages": [
               "cli/commands/new",
               "cli/commands/start",
-              "cli/commands/build"
+              "cli/commands/build",
+              "cli/commands/env",
+              "cli/commands/config",
+              "cli/commands/install",
+              "cli/commands/static",
+              "cli/commands/root"
             ]
           },
           {
@@ -94,7 +99,11 @@
               "cli/commands/deploy",
               "cli/commands/cluster",
               "cli/commands/image",
-              "cli/commands/baremetal"
+              "cli/commands/baremetal",
+              "cli/commands/lxd",
+              "cli/commands/ssh",
+              "cli/commands/run",
+              "cli/commands/metadata"
             ]
           },
           {
@@ -109,7 +118,9 @@
             "pages": [
               "cli/commands/monitor",
               "cli/commands/test",
-              "cli/commands/cron"
+              "cli/commands/cron",
+              "cli/commands/ip",
+              "cli/commands/secret"
             ]
           }
         ]
@@ -124,7 +135,11 @@
               "api/server/core",
               "api/server/user",
               "api/server/file",
-              "api/server/document"
+              "api/server/document",
+              "api/server/default",
+              "api/server/test",
+              "api/server/crypto",
+              "api/server/instance"
             ]
           },
           {

@@ -1,0 +1,451 @@
+---
+title: Instance API
+description: Instance management endpoints (admin-only)
+---
+
+The Instance API provides endpoints for managing application instances. Most operations require admin privileges.
+
+<Warning>
+Most endpoints in this API require admin authentication. Regular users can only view their own instances.
+</Warning>
+
+## Authentication
+
+All endpoints require authentication:
+- `GET /` - Authenticated users only (returns user's own instances or all instances for admins)
+- All other endpoints - Admin users only
+
+## Data Model
+
+<ResponseField name="_id" type="string">
+  MongoDB document ID
+</ResponseField>
+
+<ResponseField name="deployId" type="string">
+  Deployment identifier
+</ResponseField>
+
+<ResponseField name="host" type="string">
+  Host name or address
+</ResponseField>
+
+<ResponseField name="path" type="string">
+  Path on the host
+</ResponseField>
+
+<ResponseField name="userId" type="string">
+  Reference to the User who owns this instance
+</ResponseField>
+
+<ResponseField name="createdAt" type="string">
+  ISO 8601 timestamp of creation
+</ResponseField>
+
+<ResponseField name="updatedAt" type="string">
+  ISO 8601 timestamp of last update
+</ResponseField>
+
+## Endpoints
+
+### Create Instance
+
+Creates a new instance.
+
+<Note>
+Requires admin authentication.
+</Note>
+
+<CodeGroup>
+```bash cURL
+curl -X POST "https://api.example.com/instance" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -d '{
+    "deployId": "deploy-123",
+    "host": "example.com",
+    "path": "/app",
+    "userId": "507f1f77bcf86cd799439011"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.example.com/instance', {
+  method: 'POST',
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer YOUR_ADMIN_TOKEN'
+  },
+  body: JSON.stringify({
+    deployId: 'deploy-123',
+    host: 'example.com',
+    path: '/app',
+    userId: '507f1f77bcf86cd799439011'
+  })
+});
+const result = await response.json();
+```
+</CodeGroup>
+
+#### Request Body
+
+<ParamField body="deployId" type="string">
+  Deployment identifier
+</ParamField>
+
+<ParamField body="host" type="string">
+  Host name or address
+</ParamField>
+
+<ParamField body="path" type="string">
+  Path on the host
+</ParamField>
+
+<ParamField body="userId" type="string">
+  User ID who owns this instance
+</ParamField>
+
+#### Response
+
+<ResponseExample>
+```json Success Response
+{
+  "status": "success",
+  "data": {
+    "_id": "507f191e810c19729de860ea",
+    "deployId": "deploy-123",
+    "host": "example.com",
+    "path": "/app",
+    "userId": "507f1f77bcf86cd799439011",
+    "createdAt": "2026-03-03T10:00:00.000Z",
+    "updatedAt": "2026-03-03T10:00:00.000Z"
+  }
+}
+```
+</ResponseExample>
+
+### List Instances
+
+Retrieves all instances or user's own instances.
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.example.com/instance" \
+  -H "Authorization: Bearer YOUR_TOKEN"
+```
+
+```javascript JavaScript
+const response = await fetch('https://api.example.com/instance', {
+  headers: {
+    'Authorization': 'Bearer YOUR_TOKEN'
+  }
+});
+const result = await response.json();
+```
+</CodeGroup>
+
+#### Response
+
+<ResponseField name="status" type="string">
+  Response status: `success` or `error`
+</ResponseField>
+
+<ResponseField name="data" type="array">
+  Array of instance objects with populated user information
+  
+  <Expandable title="Instance object">
+    <ResponseField name="_id" type="string">
+      Instance ID
+    </ResponseField>
+    
+    <ResponseField name="deployId" type="string">
+      Deployment identifier
+    </ResponseField>
+    
+    <ResponseField name="host" type="string">
+      Host name
+    </ResponseField>
+    
+    <ResponseField name="path" type="string">
+      Path on host
+    </ResponseField>
+    
+    <ResponseField name="userId" type="object">
+      Populated user object
+      
+      <Expandable title="properties">
+        <ResponseField name="_id" type="string">
+          User ID
+        </ResponseField>
+        
+        <ResponseField name="email" type="string">
+          User email
+        </ResponseField>
+      </Expandable>
+    </ResponseField>
+    
+    <ResponseField name="createdAt" type="string">
+      Creation timestamp
+    </ResponseField>
+    
+    <ResponseField name="updatedAt" type="string">
+      Last update timestamp
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+<ResponseExample>
+```json Admin Response (All Instances)
+{
+  "status": "success",
+  "data": [
+    {
+      "_id": "507f191e810c19729de860ea",
+      "deployId": "deploy-123",
+      "host": "example.com",
+      "path": "/app",
+      "userId": {
+        "_id": "507f1f77bcf86cd799439011",
+        "email": "user@example.com"
+      },
+      "createdAt": "2026-03-03T10:00:00.000Z",
+      "updatedAt": "2026-03-03T10:00:00.000Z"
+    }
+  ]
+}
+```
+
+```json User Response (Own Instances)
+{
+  "status": "success",
+  "data": [
+    {
+      "_id": "507f191e810c19729de860ea",
+      "deployId": "deploy-456",
+      "host": "myapp.com",
+      "path": "/",
+      "userId": {
+        "_id": "507f1f77bcf86cd799439011",
+        "email": "user@example.com"
+      },
+      "createdAt": "2026-03-03T10:00:00.000Z",
+      "updatedAt": "2026-03-03T10:00:00.000Z"
+    }
+  ]
+}
+```
+</ResponseExample>
+
+### Get Instance by ID
+
+Retrieves a specific instance by ID.
+
+<Note>
+Requires admin authentication.
+</Note>
+
+<CodeGroup>
+```bash cURL
+curl -X GET "https://api.example.com/instance/507f191e810c19729de860ea" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://api.example.com/instance/507f191e810c19729de860ea',
+  {
+    headers: {
+      'Authorization': 'Bearer YOUR_ADMIN_TOKEN'
+    }
+  }
+);
+const result = await response.json();
+```
+</CodeGroup>
+
+#### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Instance ID
+</ParamField>
+
+#### Response
+
+<ResponseExample>
+```json Success Response
+{
+  "status": "success",
+  "data": {
+    "_id": "507f191e810c19729de860ea",
+    "deployId": "deploy-123",
+    "host": "example.com",
+    "path": "/app",
+    "userId": "507f1f77bcf86cd799439011",
+    "createdAt": "2026-03-03T10:00:00.000Z",
+    "updatedAt": "2026-03-03T10:00:00.000Z"
+  }
+}
+```
+</ResponseExample>
+
+### Update Instance
+
+Updates an existing instance.
+
+<Note>
+Requires admin authentication.
+</Note>
+
+<CodeGroup>
+```bash cURL
+curl -X PUT "https://api.example.com/instance/507f191e810c19729de860ea" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN" \
+  -d '{
+    "deployId": "deploy-456",
+    "host": "newhost.com"
+  }'
+```
+
+```javascript JavaScript
+const response = await fetch(
+  'https://api.example.com/instance/507f191e810c19729de860ea',
+  {
+    method: 'PUT',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': 'Bearer YOUR_ADMIN_TOKEN'
+    },
+    body: JSON.stringify({
+      deployId: 'deploy-456',
+      host: 'newhost.com'
+    })
+  }
+);
+const result = await response.json();
+```
+</CodeGroup>
+
+#### Path Parameters
+
+<ParamField path="id" type="string" required>
+  Instance ID to update
+</ParamField>
+
+#### Request Body
+
+Any fields from the instance model can be updated.
+
+#### Response
+
+<ResponseExample>
+```json Success Response
+{
+  "status": "success",
+  "data": {
+    "_id": "507f191e810c19729de860ea",
+    "deployId": "deploy-456",
+    "host": "newhost.com",
+    "path": "/app",
+    "userId": "507f1f77bcf86cd799439011",
+    "createdAt": "2026-03-03T10:00:00.000Z",
+    "updatedAt": "2026-03-03T12:00:00.000Z"
+  }
+}
+```
+</ResponseExample>
+
+### Delete Instance
+
+Deletes one or all instances.
+
+<Warning>
+Deleting without an ID will remove ALL instances. Use with extreme caution.
+</Warning>
+
+<Note>
+Requires admin authentication.
+</Note>
+
+<CodeGroup>
+```bash Delete Single Instance
+curl -X DELETE "https://api.example.com/instance/507f191e810c19729de860ea" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+```bash Delete All Instances
+curl -X DELETE "https://api.example.com/instance" \
+  -H "Authorization: Bearer YOUR_ADMIN_TOKEN"
+```
+
+```javascript Delete Single Instance
+const response = await fetch(
+  'https://api.example.com/instance/507f191e810c19729de860ea',
+  {
+    method: 'DELETE',
+    headers: {
+      'Authorization': 'Bearer YOUR_ADMIN_TOKEN'
+    }
+  }
+);
+const result = await response.json();
+```
+
+```javascript Delete All Instances
+const response = await fetch('https://api.example.com/instance', {
+  method: 'DELETE',
+  headers: {
+    'Authorization': 'Bearer YOUR_ADMIN_TOKEN'
+  }
+});
+const result = await response.json();
+```
+</CodeGroup>
+
+#### Path Parameters
+
+<ParamField path="id" type="string">
+  Instance ID to delete (optional - omit to delete all)
+</ParamField>
+
+#### Response
+
+<ResponseExample>
+```json Single Delete Response
+{
+  "status": "success",
+  "data": {
+    "_id": "507f191e810c19729de860ea",
+    "deployId": "deploy-123",
+    "host": "example.com",
+    "path": "/app",
+    "userId": "507f1f77bcf86cd799439011"
+  }
+}
+```
+
+```json Delete All Response
+{
+  "status": "success",
+  "data": {
+    "deletedCount": 5
+  }
+}
+```
+</ResponseExample>
+
+## Error Handling
+
+All endpoints return a consistent error format:
+
+```json
+{
+  "status": "error",
+  "message": "Error description"
+}
+```
+
+Common errors:
+- Unauthorized (HTTP 401) - Authentication required
+- Forbidden (HTTP 403) - Admin privileges required
+- Not found (HTTP 400) - Instance ID not found
+- Validation error (HTTP 400) - Invalid data provided

@@ -1,0 +1,507 @@
+---
+title: "underpost lxd"
+description: "Manage LXD virtual machines as K3s nodes for local Kubernetes development"
+---
+
+## Overview
+
+The `underpost lxd` command manages LXD virtual machines configured as K3s nodes (control plane or workers). It provides a complete workflow for creating, initializing, and managing VMs for local Kubernetes cluster development.
+
+## Usage
+
+```bash
+underpost lxd [options]
+```
+
+## Options
+
+### LXD Installation & Setup
+
+<ParamField path="--install" type="boolean">
+  Install LXD snap package
+</ParamField>
+
+<ParamField path="--init" type="boolean">
+  Initialize LXD on the current machine via preseed configuration
+</ParamField>
+
+<ParamField path="--reset" type="boolean">
+  Remove LXD snap and purge all data (WARNING: destructive operation)
+</ParamField>
+
+<ParamField path="--dev" type="boolean">
+  Use local paths instead of global npm installation
+</ParamField>
+
+### Network Configuration
+
+<ParamField path="--create-virtual-network" type="boolean">
+  Create lxdbr0 bridge network for VM connectivity
+</ParamField>
+
+<ParamField path="--ipv4-address" type="string" default="10.250.250.1/24">
+  IPv4 address/CIDR for the lxdbr0 bridge network
+</ParamField>
+
+### Profile Management
+
+<ParamField path="--create-admin-profile" type="boolean">
+  Create admin-profile for VM management with necessary permissions
+</ParamField>
+
+### VM Lifecycle
+
+<ParamField path="--create-vm" type="string">
+  Copy LXC launch command for new K3s VM to clipboard (specify VM name)
+</ParamField>
+
+<ParamField path="--delete-vm" type="string">
+  Stop and delete the specified VM
+</ParamField>
+
+<ParamField path="--root-size" type="string" default="32">
+  Root disk size in GiB for --create-vm (e.g., "32", "64")
+</ParamField>
+
+### VM Initialization
+
+<ParamField path="--init-vm" type="string">
+  Run k3s-node-setup.sh on specified VM (use with --control or --worker)
+</ParamField>
+
+<ParamField path="--control" type="boolean">
+  Initialize target VM as K3s control plane node
+</ParamField>
+
+<ParamField path="--worker" type="boolean">
+  Initialize target VM as K3s worker node
+</ParamField>
+
+### Cluster Joining
+
+<ParamField path="--join-node" type="string">
+  Join K3s worker to control plane. Format:
+  - Standalone: "workerName,controlName"
+  - With --init-vm --worker: just "controlName" for auto-join
+</ParamField>
+
+### VM Management
+
+<ParamField path="--info-vm" type="string">
+  Display full configuration and status for specified VM
+</ParamField>
+
+<ParamField path="--test" type="string">
+  Run connectivity and health checks on specified VM
+</ParamField>
+
+### Port Exposure
+
+<ParamField path="--expose" type="string">
+  Proxy host ports to VM. Format: "vmName:port1,port2" (e.g., "k3s-control:80,443")
+</ParamField>
+
+<ParamField path="--delete-expose" type="string">
+  Remove proxied ports from VM. Format: "vmName:port1,port2"
+</ParamField>
+
+### Workflow Execution
+
+<ParamField path="--workflow-id" type="string">
+  Workflow ID to execute via runWorkflow. Available workflows:
+  - `engine` - Push engine source to VM
+  - `engine-recursive-push` - Recursive push with lxc file push
+  - `dev-reset` - Reset and reinitialize dev cluster
+</ParamField>
+
+<ParamField path="--vm-id" type="string">
+  Target VM name for workflow execution
+</ParamField>
+
+<ParamField path="--deploy-id" type="string">
+  Deployment ID context for workflow execution
+</ParamField>
+
+<ParamField path="--namespace" type="string" default="default">
+  Kubernetes namespace context
+</ParamField>
+
+## Installation & Setup
+
+### Install LXD
+
+```bash
+underpost lxd --install
+```
+
+### Initialize LXD cluster
+
+```bash
+underpost lxd --init
+```
+
+This:
+- Starts LXD daemon
+- Applies preseed configuration
+- Configures cluster settings
+- Displays cluster list
+
+### Create virtual network
+
+```bash
+underpost lxd --create-virtual-network
+```
+
+Creates lxdbr0 bridge with:
+- IPv4 DHCP enabled
+- NAT enabled
+- IPv6 disabled
+
+### Create admin profile
+
+```bash
+underpost lxd --create-admin-profile
+```
+
+Sets up admin-profile with proper resource limits and security settings.
+
+## VM Creation Workflow
+
+<Steps>
+  <Step title="Generate VM creation command">
+    ```bash
+    underpost lxd --create-vm k3s-control --root-size 64
+    ```
+    Copies launch command to clipboard:
+    ```bash
+    lxc launch images:rockylinux/9 k3s-control --vm --target lxd-node1 \
+      -c limits.cpu=2 -c limits.memory=4GB \
+      --profile admin-profile -d root,size=64GiB
+    ```
+  </Step>
+  <Step title="Execute launch command">
+    Paste and run the command from clipboard:
+    ```bash
+    # Command is already in clipboard, just paste and run
+    ```
+  </Step>
+  <Step title="Initialize as control plane">
+    ```bash
+    underpost lxd --init-vm k3s-control --control
+    ```
+    This:
+    - Runs lxd-vm-setup.sh (disk, packages, kernel modules)
+    - Pushes engine source from host
+    - Runs k3s-node-setup.sh with --control flag
+    - Installs Node.js, npm dependencies, and K3s
+  </Step>
+</Steps>
+
+## Creating a K3s Cluster
+
+### Single-node control plane
+
+```bash
+# 1. Create VM
+underpost lxd --create-vm k3s-control --root-size 32
+# Paste and run the copied command
+
+# 2. Initialize as control plane
+underpost lxd --init-vm k3s-control --control
+
+# 3. Verify
+underpost lxd --test k3s-control
+```
+
+### Multi-node cluster (control + workers)
+
+```bash
+# 1. Create control plane
+underpost lxd --create-vm k3s-control
+# Run copied command
+underpost lxd --init-vm k3s-control --control
+
+# 2. Create worker and auto-join
+underpost lxd --create-vm k3s-worker-1
+# Run copied command
+underpost lxd --init-vm k3s-worker-1 --worker --join-node k3s-control
+
+# 3. Create additional worker
+underpost lxd --create-vm k3s-worker-2
+# Run copied command
+underpost lxd --init-vm k3s-worker-2 --worker --join-node k3s-control
+```
+
+### Join existing worker (standalone)
+
+```bash
+# Join worker to control plane without re-initialization
+underpost lxd --join-node k3s-worker-3,k3s-control
+```
+
+## Port Exposure
+
+### Expose HTTP/HTTPS ports
+
+```bash
+underpost lxd --expose k3s-control:80,443
+```
+
+This creates TCP proxy devices forwarding:
+- Host port 80 → VM port 80
+- Host port 443 → VM port 443
+
+### Expose custom application ports
+
+```bash
+underpost lxd --expose k3s-worker-1:3000,8080,9090
+```
+
+### Remove exposed ports
+
+```bash
+underpost lxd --delete-expose k3s-control:80,443
+```
+
+## VM Management
+
+### Get VM information
+
+```bash
+underpost lxd --info-vm k3s-control
+```
+
+Displays:
+- VM configuration
+- Console logs
+- Resource usage
+- Network interfaces
+- Running status
+
+### Run health checks
+
+```bash
+underpost lxd --test k3s-control
+```
+
+Checks:
+- IPv4 address
+- HTTP connectivity
+- CPU usage
+- Memory usage
+- Disk usage
+- Network configuration
+- DNS resolution
+- K3s node status
+
+### Delete VM
+
+```bash
+underpost lxd --delete-vm k3s-worker-2
+```
+
+Stops and removes the VM completely.
+
+## Workflow Operations
+
+### Push engine source to VM
+
+```bash
+underpost lxd --workflow-id engine --vm-id k3s-control
+```
+
+Pushes `/home/dd/engine` and `engine-private` to VM, respecting `.gitignore`.
+
+### Recursive push (alternative method)
+
+```bash
+underpost lxd --workflow-id engine-recursive-push --vm-id k3s-control
+```
+
+Uses `lxc file push --recursive` instead of tar streaming.
+
+### Reset dev cluster on VM
+
+```bash
+underpost lxd --workflow-id dev-reset --vm-id k3s-control --dev
+```
+
+Resets and reinitializes K3s cluster on the VM.
+
+## Advanced Examples
+
+### Setup complete development cluster
+
+```bash
+# 1. Initialize LXD
+underpost lxd --install
+underpost lxd --init
+underpost lxd --create-virtual-network
+underpost lxd --create-admin-profile
+
+# 2. Create control plane
+underpost lxd --create-vm k3s-control --root-size 64
+# Run copied command
+underpost lxd --init-vm k3s-control --control
+
+# 3. Expose services
+underpost lxd --expose k3s-control:80,443,6443
+
+# 4. Push application code
+underpost lxd --workflow-id engine --vm-id k3s-control
+
+# 5. Verify cluster
+underpost lxd --test k3s-control
+```
+
+### Scale with worker nodes
+
+```bash
+# Add 3 workers
+for i in {1..3}; do
+  underpost lxd --create-vm k3s-worker-$i
+  # Run copied command
+  underpost lxd --init-vm k3s-worker-$i --worker --join-node k3s-control
+done
+```
+
+### Custom network configuration
+
+```bash
+# Create custom network
+underpost lxd --create-virtual-network --ipv4-address 10.100.100.1/24
+```
+
+## VM Directory Structure
+
+After initialization, VMs contain:
+
+```
+/home/dd/engine/
+├── src/
+├── bin/
+├── manifests/
+├── scripts/
+├── package.json
+└── engine-private/
+    ├── conf/
+    ├── deploy/
+    └── ...
+```
+
+## Network Architecture
+
+```
+Host Machine (192.168.1.100)
+  |
+  └─ lxdbr0 (10.250.250.1/24)
+      |
+      ├─ k3s-control (10.250.250.10)
+      |   ├── K3s API Server :6443
+      |   ├── HTTP :80 → Host :80
+      |   └── HTTPS :443 → Host :443
+      |
+      ├─ k3s-worker-1 (10.250.250.11)
+      └─ k3s-worker-2 (10.250.250.12)
+```
+
+## Preseed Configuration
+
+The `--init` command uses `manifests/lxd/lxd-preseed.yaml`:
+
+```yaml
+config:
+  core.https_address: 127.0.0.1:8443
+  core.trust_password: admin
+networks:
+- name: lxdbr0
+  type: bridge
+  config:
+    ipv4.address: 10.250.250.1/24
+    ipv4.nat: "true"
+storage_pools:
+- name: default
+  driver: dir
+profiles:
+- name: default
+  devices:
+    root:
+      path: /
+      pool: default
+      type: disk
+cluster:
+  server_name: lxd-node1
+  enabled: true
+```
+
+## Admin Profile
+
+The admin-profile (from `manifests/lxd/lxd-admin-profile.yaml`) provides:
+
+- Nested virtualization support
+- Privileged container mode
+- Security settings for K3s
+- Resource limits (CPU, memory)
+- Network device configuration
+
+## Troubleshooting
+
+### VM won't start
+
+```bash
+# Check LXD daemon
+sudo systemctl status snap.lxd.daemon
+
+# View VM logs
+lxc console k3s-control --show-log
+
+# Check VM info
+underpost lxd --info-vm k3s-control
+```
+
+### Network connectivity issues
+
+```bash
+# Test VM connectivity
+underpost lxd --test k3s-control
+
+# Check bridge status
+ip addr show lxdbr0
+
+# Verify VM IP
+lxc list k3s-control
+```
+
+### K3s not running
+
+```bash
+# Check K3s service on VM
+lxc exec k3s-control -- systemctl status k3s
+
+# View K3s logs
+lxc exec k3s-control -- journalctl -u k3s -f
+
+# Check nodes
+lxc exec k3s-control -- k3s kubectl get nodes
+```
+
+### Reset and start over
+
+```bash
+# Remove all VMs
+lxc list --format json | jq -r '.[].name' | xargs -I {} lxc delete {} --force
+
+# Reset LXD
+underpost lxd --reset
+
+# Reinstall and reinitialize
+underpost lxd --install
+underpost lxd --init
+```
+
+## Related Commands
+
+- [`underpost cluster`](/cli/commands/cluster) - Manage Kind/kubeadm clusters
+- [`underpost deploy`](/cli/commands/deploy) - Deploy applications to K3s
+- [`underpost run`](/cli/commands/run) - Execute workflows on VMs
+- [`underpost ssh`](/cli/commands/ssh) - Manage SSH access to VMs

@@ -1,0 +1,268 @@
+---
+title: underpost ip
+description: Display and manage IP addresses with ban lists for ingress and egress traffic
+---
+
+The `underpost ip` command displays public IP addresses and provides comprehensive IP address management including ban lists for ingress and egress traffic control.
+
+## Usage
+
+```bash
+underpost ip [ips] [options]
+```
+
+## Arguments
+
+<ParamField path="ips" type="string" optional>
+  Comma-separated list of IP addresses to process. Used with ban operations.
+
+  ```bash
+  underpost ip 192.168.1.100,10.0.0.50 --ban-both-add
+  ```
+</ParamField>
+
+## Options
+
+### Display Options
+
+<ParamField path="--dhcp" type="boolean">
+  Fetches and displays the current Dynamic Host Configuration Protocol (DHCP) server IP address.
+
+  ```bash
+  underpost ip --dhcp
+  ```
+</ParamField>
+
+<ParamField path="--copy" type="boolean">
+  Copies the IP addresses to the clipboard.
+
+  ```bash
+  underpost ip --copy
+  ```
+</ParamField>
+
+### Ingress Ban Management
+
+<ParamField path="--ban-ingress-add" type="boolean">
+  Adds IP addresses to the banned ingress list. Blocks incoming traffic from specified IPs.
+
+  ```bash
+  underpost ip 192.168.1.100,10.0.0.50 --ban-ingress-add
+  ```
+</ParamField>
+
+<ParamField path="--ban-ingress-remove" type="boolean">
+  Removes IP addresses from the banned ingress list.
+
+  ```bash
+  underpost ip 192.168.1.100 --ban-ingress-remove
+  ```
+</ParamField>
+
+<ParamField path="--ban-ingress-list" type="boolean">
+  Lists all banned ingress IP addresses.
+
+  ```bash
+  underpost ip --ban-ingress-list
+  ```
+</ParamField>
+
+<ParamField path="--ban-ingress-clear" type="boolean">
+  Clears all banned ingress IP addresses.
+
+  ```bash
+  underpost ip --ban-ingress-clear
+  ```
+</ParamField>
+
+### Egress Ban Management
+
+<ParamField path="--ban-egress-add" type="boolean">
+  Adds IP addresses to the banned egress list. Blocks outgoing traffic to specified IPs.
+
+  ```bash
+  underpost ip 203.0.113.0,198.51.100.0 --ban-egress-add
+  ```
+</ParamField>
+
+<ParamField path="--ban-egress-remove" type="boolean">
+  Removes IP addresses from the banned egress list.
+
+  ```bash
+  underpost ip 203.0.113.0 --ban-egress-remove
+  ```
+</ParamField>
+
+<ParamField path="--ban-egress-list" type="boolean">
+  Lists all banned egress IP addresses.
+
+  ```bash
+  underpost ip --ban-egress-list
+  ```
+</ParamField>
+
+<ParamField path="--ban-egress-clear" type="boolean">
+  Clears all banned egress IP addresses.
+
+  ```bash
+  underpost ip --ban-egress-clear
+  ```
+</ParamField>
+
+### Combined Ban Management
+
+<ParamField path="--ban-both-add" type="boolean">
+  Adds IP addresses to both banned ingress and egress lists simultaneously.
+
+  ```bash
+  underpost ip 192.168.1.100,10.0.0.50 --ban-both-add
+  ```
+</ParamField>
+
+<ParamField path="--ban-both-remove" type="boolean">
+  Removes IP addresses from both banned ingress and egress lists simultaneously.
+
+  ```bash
+  underpost ip 192.168.1.100 --ban-both-remove
+  ```
+</ParamField>
+
+## Examples
+
+### Display Current Public IP
+
+```bash
+underpost ip
+```
+
+### Display DHCP Server IP
+
+```bash
+underpost ip --dhcp
+```
+
+### Copy IP to Clipboard
+
+```bash
+underpost ip --copy
+```
+
+### Block Incoming Traffic from IPs
+
+```bash
+underpost ip 192.168.1.100,192.168.1.101 --ban-ingress-add
+```
+
+### Block Outgoing Traffic to IPs
+
+```bash
+underpost ip 203.0.113.0,198.51.100.0 --ban-egress-add
+```
+
+### Block Both Incoming and Outgoing Traffic
+
+```bash
+underpost ip 192.168.1.100 --ban-both-add
+```
+
+### List Banned IPs
+
+```bash
+# List ingress banned IPs
+underpost ip --ban-ingress-list
+
+# List egress banned IPs
+underpost ip --ban-egress-list
+```
+
+### Remove IP from Ban List
+
+```bash
+underpost ip 192.168.1.100 --ban-ingress-remove
+```
+
+### Clear All Banned IPs
+
+```bash
+# Clear ingress bans
+underpost ip --ban-ingress-clear
+
+# Clear egress bans
+underpost ip --ban-egress-clear
+```
+
+### Security Workflow
+
+<Steps>
+  <Step title="Identify malicious IP">
+    Review logs or monitoring data to identify the malicious IP address.
+  </Step>
+  
+  <Step title="Add to ban list">
+    ```bash
+    underpost ip 203.0.113.50 --ban-both-add
+    ```
+  </Step>
+  
+  <Step title="Verify ban list">
+    ```bash
+    underpost ip --ban-ingress-list
+    underpost ip --ban-egress-list
+    ```
+  </Step>
+  
+  <Step title="Remove if needed">
+    If the ban was incorrect:
+    ```bash
+    underpost ip 203.0.113.50 --ban-both-remove
+    ```
+  </Step>
+</Steps>
+
+### Manage Multiple IPs
+
+```bash
+# Add multiple IPs at once
+underpost ip 192.168.1.100,192.168.1.101,192.168.1.102 --ban-ingress-add
+
+# Remove multiple IPs
+underpost ip 192.168.1.100,192.168.1.101 --ban-ingress-remove
+```
+
+## Use Cases
+
+### Network Security
+
+Block malicious IPs from accessing your services:
+
+```bash
+underpost ip 203.0.113.0 --ban-ingress-add
+```
+
+### Compliance and Data Protection
+
+Prevent outgoing connections to restricted destinations:
+
+```bash
+underpost ip 198.51.100.0 --ban-egress-add
+```
+
+### Testing and Development
+
+Temporarily block IPs during testing:
+
+```bash
+# Block test IP
+underpost ip 10.0.0.100 --ban-both-add
+
+# Test your application
+# ...
+
+# Unblock after testing
+underpost ip 10.0.0.100 --ban-both-remove
+```
+
+## Related Commands
+
+- [underpost cluster](/cli/commands/cluster) - Manage Kubernetes clusters
+- [underpost deploy](/cli/commands/deploy) - Manage deployments

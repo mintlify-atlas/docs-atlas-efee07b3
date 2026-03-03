@@ -1,0 +1,184 @@
+---
+title: "underpost config"
+description: "Manage Underpost root environment configurations with various operators"
+---
+
+## Overview
+
+The `underpost config` command manages configuration key-value pairs stored in the Underpost root environment. It provides operators to get, set, list, and delete configuration values.
+
+## Usage
+
+```bash
+underpost config <operator> [key] [value] [options]
+```
+
+## Arguments
+
+<ParamField path="operator" type="string" required>
+  The configuration operation to perform:
+  - `set` - Set a configuration key-value pair
+  - `get` - Retrieve a configuration value
+  - `list` - List all configuration entries
+  - `delete` - Remove a configuration key
+  - `clean` - Remove the entire environment file
+</ParamField>
+
+<ParamField path="key" type="string" optional>
+  The specific configuration key to manage (required for `set`, `get`, and `delete`)
+</ParamField>
+
+<ParamField path="value" type="string" optional>
+  The value to set for the configuration key (required for `set`)
+</ParamField>
+
+## Options
+
+<ParamField path="--plain" type="boolean">
+  Print the configuration value in plain text without formatting
+</ParamField>
+
+<ParamField path="--filter" type="string">
+  Filter the list by matching key or value (only for `list` operation)
+</ParamField>
+
+<ParamField path="--deploy-id" type="string">
+  Set the deployment configuration ID for the operation context
+</ParamField>
+
+<ParamField path="--build" type="boolean">
+  Set the build context for the operation (applies to all deploy IDs in dd.router)
+</ParamField>
+
+<ParamField path="--copy" type="boolean">
+  Copy the configuration value to the clipboard (only for `get` operation)
+</ParamField>
+
+## Operators
+
+### set
+
+Set an environment variable in the underpost root environment.
+
+```bash
+underpost config set GITHUB_USERNAME myusername
+```
+
+**With build context:**
+```bash
+underpost config set API_KEY xyz123 --build --deploy-id dd-default
+```
+
+This sets the value across all environment files (test, development, production) for the specified deploy ID.
+
+### get
+
+Retrieve an environment variable value.
+
+```bash
+underpost config get GITHUB_USERNAME
+```
+
+**Plain output:**
+```bash
+underpost config get GITHUB_USERNAME --plain
+```
+
+**Copy to clipboard:**
+```bash
+underpost config get API_KEY --copy
+```
+
+### list
+
+List all configuration entries in the underpost root environment.
+
+```bash
+underpost config list
+```
+
+**Filter by keyword:**
+```bash
+underpost config list --filter GITHUB
+```
+
+This shows only keys or values matching "GITHUB".
+
+### delete
+
+Remove a configuration key.
+
+```bash
+underpost config delete OLD_API_KEY
+```
+
+### clean
+
+Remove the entire environment file.
+
+```bash
+underpost config clean
+```
+
+## Configuration File Location
+
+Configuration values are stored in:
+
+```
+~/.npm-global/underpost/.env
+```
+
+Or for local development:
+
+```
+./node_modules/underpost/.env
+```
+
+## Common Use Cases
+
+### Store GitHub credentials
+
+```bash
+underpost config set GITHUB_USERNAME myusername
+underpost config set GITHUB_EMAIL myemail@example.com
+underpost config set GITHUB_TOKEN ghp_xxxxxxxxxxxx
+```
+
+### Store deployment configuration
+
+```bash
+underpost config set DEPLOY_ID dd-default
+underpost config set TIME_ZONE America/New_York
+underpost config set MAAS_NTP_SERVER 192.168.1.1
+```
+
+### Check current settings
+
+```bash
+# List all settings
+underpost config list
+
+# View specific setting
+underpost config get DEPLOY_ID
+
+# Filter settings by keyword
+underpost config list --filter GITHUB
+```
+
+## Build Context
+
+When using `--build` flag with `set`, the value is written to all environment files for the deployment:
+
+```bash
+underpost config set DATABASE_URL mongodb://localhost:27017 --build --deploy-id dd-default
+```
+
+This updates:
+- `./engine-private/conf/dd-default/.env.test`
+- `./engine-private/conf/dd-default/.env.development`
+- `./engine-private/conf/dd-default/.env.production`
+
+## Related Commands
+
+- [`underpost env`](/cli/commands/env) - Load environment for specific deployment
+- [`underpost new`](/cli/commands/new) - Create new deployment configurations

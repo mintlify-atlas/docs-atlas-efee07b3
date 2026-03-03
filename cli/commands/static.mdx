@@ -1,0 +1,446 @@
+---
+title: underpost static
+description: Generate static pages with comprehensive customization options
+---
+
+The `underpost static` command generates static HTML pages from SSR components with extensive customization options including metadata, scripts, styles, and more. It supports both configuration files and command-line options for flexible static site generation.
+
+## Usage
+
+```bash
+underpost static [options]
+```
+
+## Options
+
+### Page Configuration
+
+<ParamField path="--page" type="string">
+  Path to the SSR component to render into a static HTML page.
+
+  ```bash
+  underpost static --page ./src/client/ssr/body/HomePage.js
+  ```
+</ParamField>
+
+<ParamField path="--output-path" type="string">
+  Output path for the generated static HTML file.
+
+  ```bash
+  underpost static --page ./src/components/App.js --output-path ./dist/index.html
+  ```
+</ParamField>
+
+<ParamField path="--build-path" type="string">
+  Sets the build path for static documents or assets. Defaults to `/`.
+
+  ```bash
+  underpost static --page ./src/App.js --build-path /app
+  ```
+</ParamField>
+
+### Metadata Options
+
+<ParamField path="--title" type="string">
+  Page title. Deprecated - use `--config-file` with metadata object instead.
+
+  ```bash
+  underpost static --page ./src/App.js --title "My Application"
+  ```
+</ParamField>
+
+<ParamField path="--description" type="string">
+  Page description for SEO.
+
+  ```bash
+  underpost static --page ./src/App.js --description "A modern web application"
+  ```
+</ParamField>
+
+<ParamField path="--keywords" type="string">
+  Comma-separated keywords for SEO.
+
+  ```bash
+  underpost static --page ./src/App.js --keywords "react,app,web"
+  ```
+</ParamField>
+
+<ParamField path="--author" type="string">
+  Page author.
+
+  ```bash
+  underpost static --page ./src/App.js --author "Your Name"
+  ```
+</ParamField>
+
+<ParamField path="--theme-color" type="string">
+  Theme color for mobile browsers.
+
+  ```bash
+  underpost static --page ./src/App.js --theme-color "#4F46E5"
+  ```
+</ParamField>
+
+<ParamField path="--canonical-url" type="string">
+  Canonical URL for SEO.
+
+  ```bash
+  underpost static --page ./src/App.js --canonical-url "https://example.com"
+  ```
+</ParamField>
+
+<ParamField path="--thumbnail" type="string">
+  Open Graph thumbnail image URL.
+
+  ```bash
+  underpost static --page ./src/App.js --thumbnail "https://example.com/og-image.png"
+  ```
+</ParamField>
+
+<ParamField path="--locale" type="string">
+  Page locale. Defaults to `en-US`.
+
+  ```bash
+  underpost static --page ./src/App.js --locale "es-ES"
+  ```
+</ParamField>
+
+<ParamField path="--site-name" type="string">
+  Site name for Open Graph.
+
+  ```bash
+  underpost static --page ./src/App.js --site-name "My Site"
+  ```
+</ParamField>
+
+### Script and Style Injection
+
+<ParamField path="--head-scripts" type="string">
+  Comma-separated paths to scripts for the head section.
+
+  ```bash
+  underpost static --page ./src/App.js --head-scripts "/analytics.js,/config.js"
+  ```
+</ParamField>
+
+<ParamField path="--body-scripts" type="string">
+  Comma-separated paths to scripts for the body section.
+
+  ```bash
+  underpost static --page ./src/App.js --body-scripts "/app.js,/vendor.js"
+  ```
+</ParamField>
+
+<ParamField path="--styles" type="string">
+  Comma-separated paths to stylesheets.
+
+  ```bash
+  underpost static --page ./src/App.js --styles "/main.css,/theme.css"
+  ```
+</ParamField>
+
+### Icon Configuration
+
+<ParamField path="--favicon" type="string">
+  Favicon path.
+
+  ```bash
+  underpost static --page ./src/App.js --favicon "/favicon.ico"
+  ```
+</ParamField>
+
+<ParamField path="--apple-touch-icon" type="string">
+  Apple touch icon path.
+
+  ```bash
+  underpost static --page ./src/App.js --apple-touch-icon "/apple-touch-icon.png"
+  ```
+</ParamField>
+
+<ParamField path="--manifest" type="string">
+  Web manifest path.
+
+  ```bash
+  underpost static --page ./src/App.js --manifest "/manifest.json"
+  ```
+</ParamField>
+
+### Component Injection
+
+<ParamField path="--head-components" type="string">
+  Comma-separated SSR head component paths.
+
+  ```bash
+  underpost static --page ./src/App.js --head-components "./src/ssr/Seo.js,./src/ssr/Analytics.js"
+  ```
+</ParamField>
+
+<ParamField path="--body-components" type="string">
+  Comma-separated SSR body component paths.
+
+  ```bash
+  underpost static --page ./src/App.js --body-components "./src/ssr/Footer.js"
+  ```
+</ParamField>
+
+### Build Configuration
+
+<ParamField path="--env" type="string">
+  Environment for the static build. Options: `development`, `production`. Defaults to `production`.
+
+  ```bash
+  underpost static --page ./src/App.js --env development
+  ```
+</ParamField>
+
+<ParamField path="--minify" type="boolean">
+  Minify HTML output. Enabled by default for production.
+
+  ```bash
+  underpost static --page ./src/App.js --minify
+  ```
+</ParamField>
+
+<ParamField path="--no-minify" type="boolean">
+  Disable HTML minification.
+
+  ```bash
+  underpost static --page ./src/App.js --no-minify
+  ```
+</ParamField>
+
+### Configuration File
+
+<ParamField path="--config-file" type="string">
+  Path to JSON configuration file. CLI options override file configuration.
+
+  ```bash
+  underpost static --config-file ./static-config.json
+  ```
+</ParamField>
+
+<ParamField path="--generate-config" type="string" optional>
+  Generate a template configuration file. Optionally specify the output path.
+
+  ```bash
+  underpost static --generate-config ./my-config.json
+  ```
+</ParamField>
+
+### HTML Attributes
+
+<ParamField path="--lang" type="string">
+  HTML lang attribute. Defaults to `en`.
+
+  ```bash
+  underpost static --page ./src/App.js --lang es
+  ```
+</ParamField>
+
+<ParamField path="--dir" type="string">
+  HTML dir attribute. Defaults to `ltr`. Options: `ltr`, `rtl`.
+
+  ```bash
+  underpost static --page ./src/App.js --dir rtl
+  ```
+</ParamField>
+
+### Development Server
+
+<ParamField path="--run-sv" type="number" optional>
+  Start a standalone Express static server to preview the static build. Optionally specify port (default: 5000).
+
+  ```bash
+  underpost static --page ./src/App.js --output-path ./dist/index.html --run-sv 3000
+  ```
+</ParamField>
+
+<ParamField path="--dev" type="boolean">
+  Sets the development CLI context.
+
+  ```bash
+  underpost static --page ./src/App.js --dev
+  ```
+</ParamField>
+
+## Examples
+
+### Generate Basic Static Page
+
+```bash
+underpost static --page ./src/client/ssr/body/HomePage.js --output-path ./dist/index.html
+```
+
+### Generate Page with Full SEO Metadata
+
+```bash
+underpost static \
+  --page ./src/App.js \
+  --output-path ./dist/index.html \
+  --title "My App" \
+  --description "A modern web application" \
+  --keywords "react,app,web" \
+  --author "Your Name" \
+  --canonical-url "https://example.com" \
+  --thumbnail "https://example.com/og-image.png"
+```
+
+### Generate Page with Scripts and Styles
+
+```bash
+underpost static \
+  --page ./src/App.js \
+  --output-path ./dist/index.html \
+  --head-scripts "/analytics.js" \
+  --body-scripts "/app.js,/vendor.js" \
+  --styles "/main.css,/theme.css"
+```
+
+### Generate Page with Icons and Manifest
+
+```bash
+underpost static \
+  --page ./src/App.js \
+  --output-path ./dist/index.html \
+  --favicon "/favicon.ico" \
+  --apple-touch-icon "/apple-touch-icon.png" \
+  --manifest "/manifest.json"
+```
+
+### Using Configuration File
+
+<Steps>
+  <Step title="Generate configuration template">
+    ```bash
+    underpost static --generate-config ./static-config.json
+    ```
+  </Step>
+  
+  <Step title="Edit the configuration file">
+    Edit `static-config.json` with your custom settings:
+    ```json
+    {
+      "page": "./src/client/ssr/body/DefaultSplashScreen.js",
+      "outputPath": "./dist/index.html",
+      "env": "production",
+      "minify": true,
+      "metadata": {
+        "title": "My Application",
+        "description": "A description of my application",
+        "keywords": ["keyword1", "keyword2"]
+      }
+    }
+    ```
+  </Step>
+  
+  <Step title="Generate static page using config">
+    ```bash
+    underpost static --config-file ./static-config.json
+    ```
+  </Step>
+</Steps>
+
+### Preview Static Build with Dev Server
+
+```bash
+underpost static \
+  --page ./src/App.js \
+  --output-path ./dist/index.html \
+  --run-sv 5000
+```
+
+The static server will be available at `http://localhost:5000`.
+
+### Development Workflow
+
+```bash
+underpost static \
+  --page ./src/App.js \
+  --output-path ./dist/index.html \
+  --env development \
+  --no-minify \
+  --dev
+```
+
+### Production Build with All Features
+
+```bash
+underpost static \
+  --page ./src/App.js \
+  --output-path ./dist/index.html \
+  --env production \
+  --minify \
+  --title "Production App" \
+  --description "Production-ready application" \
+  --theme-color "#4F46E5" \
+  --head-scripts "/analytics.js" \
+  --styles "/main.css" \
+  --favicon "/favicon.ico" \
+  --manifest "/manifest.json"
+```
+
+## Configuration File Format
+
+The JSON configuration file supports all options with camelCase naming:
+
+```json
+{
+  "page": "./src/client/ssr/body/DefaultSplashScreen.js",
+  "outputPath": "./dist/index.html",
+  "buildPath": "/",
+  "env": "production",
+  "minify": true,
+  "lang": "en",
+  "dir": "ltr",
+  "metadata": {
+    "title": "My Application",
+    "description": "A description of my application",
+    "keywords": ["keyword1", "keyword2", "keyword3"],
+    "author": "Your Name",
+    "themeColor": "#ffffff",
+    "canonicalURL": "https://example.com",
+    "thumbnail": "https://example.com/images/thumbnail.png",
+    "locale": "en-US",
+    "siteName": "My Site"
+  },
+  "scripts": {
+    "head": [
+      {
+        "src": "https://example.com/analytics.js",
+        "async": true
+      }
+    ],
+    "body": [
+      {
+        "src": "/app.js",
+        "type": "module",
+        "defer": true
+      }
+    ]
+  },
+  "styles": [
+    {
+      "href": "/styles/main.css"
+    }
+  ],
+  "icons": {
+    "favicon": "/favicon.ico",
+    "appleTouchIcon": "/apple-touch-icon.png",
+    "manifest": "/manifest.json"
+  },
+  "headComponents": ["./src/client/ssr/head/Seo.js"],
+  "microdata": [
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "name": "My Site",
+      "url": "https://example.com"
+    }
+  ]
+}
+```
+
+## Related Commands
+
+- [underpost start](/cli/commands/start) - Start application servers
+- [underpost config](/cli/commands/config) - Manage configurations

@@ -1,0 +1,63 @@
+---
+title: underpost root
+description: Display the npm root installation path
+---
+
+The `underpost root` command displays the root path of the npm installation where Underpost is installed. This is useful for locating npm global packages and understanding the installation directory.
+
+## Usage
+
+```bash
+underpost root
+```
+
+## Description
+
+This command outputs the npm root path to the console. The npm root path is the directory where npm installs global packages. This can be helpful for:
+
+- Locating Underpost installation files
+- Understanding your npm global package structure
+- Troubleshooting installation issues
+- Configuring system paths
+
+## Examples
+
+### Display npm root path
+
+```bash
+underpost root
+```
+
+Example output:
+```
+/usr/local/lib/node_modules/underpost
+```
+
+### Use in scripts
+
+You can capture the root path in shell scripts:
+
+```bash
+UNDERPOST_ROOT=$(underpost root)
+echo "Underpost is installed at: $UNDERPOST_ROOT"
+```
+
+### Navigate to installation directory
+
+```bash
+cd $(underpost root)
+ls -la
+```
+
+### Check installation location
+
+```bash
+underpost root
+which underpost
+npm list -g underpost
+```
+
+## Related Commands
+
+- [underpost config](/cli/commands/config) - Manage Underpost configurations
+- [underpost install](/cli/commands/install) - Quick dependency import

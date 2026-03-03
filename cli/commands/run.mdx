@@ -1,0 +1,656 @@
+---
+title: "underpost run"
+description: "Execute specialized workflow scripts with 56 runner types for deployment, development, and operations"
+---
+
+## Overview
+
+The `underpost run` command provides 56 specialized runners for executing workflow scripts ranging from cluster management to deployment automation. Each runner encapsulates a specific workflow pattern.
+
+## Usage
+
+```bash
+underpost run <runner-id> [path] [options]
+```
+
+## Arguments
+
+<ParamField path="runner-id" type="string" required>
+  The runner ID to execute. See [Available Runners](#available-runners) for complete list.
+</ParamField>
+
+<ParamField path="path" type="string" optional>
+  Input value, identifier, or path specific to the runner operation
+</ParamField>
+
+## Common Options
+
+### Execution Context
+
+<ParamField path="--dev" type="boolean">
+  Set development context (uses `node bin` instead of global `underpost`)
+</ParamField>
+
+<ParamField path="--build" type="boolean">
+  Set builder context for the runner
+</ParamField>
+
+### Kubernetes Context
+
+<ParamField path="--namespace" type="string" default="default">
+  Kubernetes namespace for operations
+</ParamField>
+
+<ParamField path="--kubeadm" type="boolean">
+  Set kubeadm cluster context
+</ParamField>
+
+<ParamField path="--kind" type="boolean">
+  Set kind cluster context
+</ParamField>
+
+<ParamField path="--k3s" type="boolean">
+  Set k3s cluster context
+</ParamField>
+
+### Resource Configuration
+
+<ParamField path="--replicas" type="number" default="1">
+  Number of replicas for deployment
+</ParamField>
+
+<ParamField path="--pod-name" type="string">
+  Specific pod name for execution
+</ParamField>
+
+<ParamField path="--node-name" type="string">
+  Specific node name for execution
+</ParamField>
+
+<ParamField path="--image-name" type="string">
+  Container image name for execution
+</ParamField>
+
+<ParamField path="--container-name" type="string">
+  Container name for execution
+</ParamField>
+
+### Deployment Options
+
+<ParamField path="--deploy-id" type="string">
+  Deployment configuration ID
+</ParamField>
+
+<ParamField path="--instance-id" type="string">
+  Instance identifier
+</ParamField>
+
+<ParamField path="--hosts" type="string">
+  Comma-separated list of hosts
+</ParamField>
+
+### Volume Configuration
+
+<ParamField path="--volume-host-path" type="string">
+  Volume host path for mounting
+</ParamField>
+
+<ParamField path="--volume-mount-path" type="string">
+  Volume mount path inside container
+</ParamField>
+
+<ParamField path="--volume-type" type="string">
+  Type of volume (e.g., hostPath, pvc)
+</ParamField>
+
+<ParamField path="--claim-name" type="string">
+  PVC claim name for volume mounting
+</ParamField>
+
+### Network Configuration
+
+<ParamField path="--port" type="number">
+  Port for execution or exposure
+</ParamField>
+
+<ParamField path="--etc-hosts" type="boolean">
+  Enable /etc/hosts modification for local access
+</ParamField>
+
+<ParamField path="--host-network" type="boolean">
+  Enable host network mode
+</ParamField>
+
+<ParamField path="--expose" type="boolean">
+  Enable service exposure
+</ParamField>
+
+<ParamField path="--tls" type="boolean">
+  Enable TLS for the runner execution
+</ParamField>
+
+### HTTPProxy Timeouts
+
+<ParamField path="--timeout-response" type="string">
+  HTTPProxy per-route response timeout (e.g., "1s", "300ms", "infinity")
+</ParamField>
+
+<ParamField path="--timeout-idle" type="string">
+  HTTPProxy per-route idle timeout (e.g., "10s", "infinity")
+</ParamField>
+
+<ParamField path="--retry-count" type="number">
+  HTTPProxy per-route retry count (e.g., 3)
+</ParamField>
+
+<ParamField path="--retry-per-try-timeout" type="string">
+  HTTPProxy retry per-try timeout (e.g., "150ms")
+</ParamField>
+
+### Resource Limits
+
+<ParamField path="--requests-memory" type="string">
+  Memory request for container (e.g., "256Mi")
+</ParamField>
+
+<ParamField path="--requests-cpu" type="string">
+  CPU request for container (e.g., "100m")
+</ParamField>
+
+<ParamField path="--limits-memory" type="string">
+  Memory limit for container (e.g., "512Mi")
+</ParamField>
+
+<ParamField path="--limits-cpu" type="string">
+  CPU limit for container (e.g., "500m")
+</ParamField>
+
+<ParamField path="--resource-template-id" type="string">
+  Resource template ID for predefined resource configurations
+</ParamField>
+
+### Command Execution
+
+<ParamField path="--cmd" type="string">
+  Comma-separated list of commands to execute
+</ParamField>
+
+<ParamField path="--args" type="string">
+  Array of arguments to pass to the command
+</ParamField>
+
+### Job Configuration
+
+<ParamField path="--tty" type="boolean">
+  Enable TTY for container in deploy-job
+</ParamField>
+
+<ParamField path="--stdin" type="boolean">
+  Keep STDIN open for container in deploy-job
+</ParamField>
+
+<ParamField path="--restart-policy" type="string">
+  Restart policy for job (e.g., "Never", "OnFailure")
+</ParamField>
+
+<ParamField path="--runtime-class-name" type="string">
+  Runtime class name for job
+</ParamField>
+
+<ParamField path="--image-pull-policy" type="string">
+  Image pull policy (e.g., "Always", "IfNotPresent")
+</ParamField>
+
+<ParamField path="--api-version" type="string">
+  API version for job manifest
+</ParamField>
+
+<ParamField path="--labels" type="string">
+  Comma-separated key-value pairs for labels (e.g., "app=my-app,env=prod")
+</ParamField>
+
+<ParamField path="--kind-type" type="string">
+  Kubernetes resource kind (e.g., Job, Deployment)
+</ParamField>
+
+### Cron Job Options
+
+<ParamField path="--cmd-cron-jobs" type="string">
+  Pre-script commands to run before cron job execution
+</ParamField>
+
+<ParamField path="--deploy-id-cron-jobs" type="string">
+  Deployment IDs to synchronize cron jobs with
+</ParamField>
+
+### Monitoring
+
+<ParamField path="--monitor-status" type="string" default="Running">
+  Status to monitor for pod/resource
+</ParamField>
+
+<ParamField path="--monitor-status-kind-type" type="string" default="pods">
+  Kubernetes resource kind type to monitor
+</ParamField>
+
+<ParamField path="--monitor-status-delta-ms" type="number" default="1000">
+  Polling interval in milliseconds for status monitoring
+</ParamField>
+
+<ParamField path="--monitor-status-max-attempts" type="number" default="600">
+  Maximum number of status check attempts
+</ParamField>
+
+### Other Options
+
+<ParamField path="--force" type="boolean">
+  Force operation, overriding warnings or conflicts
+</ParamField>
+
+<ParamField path="--reset" type="boolean">
+  Reset runner state before execution
+</ParamField>
+
+<ParamField path="--terminal" type="boolean">
+  Enable terminal mode for interactive execution
+</ParamField>
+
+<ParamField path="--logs" type="boolean">
+  Stream logs during runner execution
+</ParamField>
+
+<ParamField path="--log-type" type="string">
+  Log type for the runner execution
+</ParamField>
+
+<ParamField path="--dry-run" type="boolean">
+  Preview operations without executing them
+</ParamField>
+
+<ParamField path="--timezone" type="string">
+  Timezone for the runner execution
+</ParamField>
+
+<ParamField path="--user" type="string">
+  User context for the runner execution
+</ParamField>
+
+<ParamField path="--pid" type="string">
+  Process ID context for execution
+</ParamField>
+
+<ParamField path="--disable-private-conf-update" type="boolean">
+  Disable updates to private configuration during execution
+</ParamField>
+
+<ParamField path="--create-job-now" type="boolean">
+  After applying cron manifests, immediately create a Job from each CronJob
+</ParamField>
+
+## Available Runners
+
+### Cluster Management
+
+#### dev-cluster
+Reset and deploy full development cluster with MongoDB, Valkey, and service exposure.
+
+```bash
+underpost run dev-cluster --dev --namespace default
+```
+
+#### cluster-build
+Build configuration for cluster deployment.
+
+```bash
+underpost run cluster-build
+```
+
+### Deployment Operations
+
+#### sync
+Deploy with blue/green traffic switching and health monitoring.
+
+```bash
+underpost run sync dd-default,2,green,custom-image:latest,node-name --namespace production
+```
+
+Path format: `deployId,replicas,versions,image,node`
+
+#### stop
+Stop a deployment by deleting Kubernetes resources.
+
+```bash
+underpost run stop --deploy-id dd-default --namespace default
+```
+
+#### promote
+Switch traffic between blue/green deployments.
+
+```bash
+underpost run promote dd-default,production,2 --namespace default
+```
+
+Path format: `deployId,env,replicas`
+
+#### instance
+Deploy instance from conf.instances.json configuration.
+
+```bash
+underpost run instance dd-default,web-1,3 --namespace default --tls
+```
+
+Path format: `deployId,instanceId,replicas`
+
+#### instance-promote
+Promote instance deployment traffic.
+
+```bash
+underpost run instance-promote dd-default,web-1 --namespace default
+```
+
+### SSH Remote Operations
+
+#### ssh-deploy
+Trigger SSH-based CD pipeline by committing and pushing.
+
+```bash
+underpost run ssh-deploy deploy-marker
+```
+
+#### ssh-deploy-info
+Retrieve deployment status from remote server via SSH.
+
+```bash
+underpost run ssh-deploy-info dd --deploy-id dd-default --user root
+```
+
+#### ssh-deploy-stop
+Stop remote deployment via SSH.
+
+```bash
+underpost run ssh-deploy-stop current --deploy-id dd-default --user root --namespace default
+```
+
+#### ssh-deploy-db
+Import/restore database on remote deployment.
+
+```bash
+underpost run ssh-deploy-db dd-default --deploy-id dd-default --user root --namespace default
+```
+
+#### ssh-deploy-db-rollback
+Perform database rollback via SSH.
+
+```bash
+underpost run ssh-deploy-db-rollback dd-default,3 --deploy-id dd-default --user root
+```
+
+Path format: `deployId,nCommits`
+
+#### ssh-deploy-db-status
+Check database statistics for deployments.
+
+```bash
+underpost run ssh-deploy-db-status dd --deploy-id dd-default --user root
+```
+
+### Repository Management
+
+#### clean
+Clean repository by removing untracked files.
+
+```bash
+underpost run clean /home/dd/engine,/home/dd/engine/engine-private
+```
+
+#### pull
+Clone or pull engine and engine-private repositories.
+
+```bash
+underpost run pull
+```
+
+#### template-deploy
+Commit and push to pwa-microservices-template.
+
+```bash
+underpost run template-deploy
+```
+
+#### template-deploy-image
+Commit and push Docker image deployment.
+
+```bash
+underpost run template-deploy-image
+```
+
+#### release-deploy
+Execute deployment for all IDs in dd.router.
+
+```bash
+underpost run release-deploy
+```
+
+### Development Tools
+
+#### dev-hosts-expose
+Deploy with /etc/hosts modification.
+
+```bash
+underpost run dev-hosts-expose dd-default
+```
+
+#### dev-hosts-restore
+Restore /etc/hosts to original state.
+
+```bash
+underpost run dev-hosts-restore
+```
+
+#### dd-container
+Deploy development container for testing.
+
+```bash
+underpost run dd-container "npm test" --dev --namespace default
+```
+
+#### db-client
+Deploy Adminer database client.
+
+```bash
+underpost run db-client --namespace default
+```
+
+### Service Management
+
+#### svc-ls
+List systemd services and packages.
+
+```bash
+underpost run svc-ls sshd
+```
+
+#### svc-rm
+Remove systemd service completely.
+
+```bash
+underpost run svc-rm old-service
+```
+
+### Metadata & Monitoring
+
+#### metadata
+Generate metadata for deployment.
+
+```bash
+underpost run metadata dd-default --dev --namespace default
+```
+
+#### metrics
+Deploy Prometheus and Grafana monitoring.
+
+```bash
+underpost run metrics
+```
+
+#### get-proxy
+Retrieve and display HTTPProxy resources.
+
+```bash
+underpost run get-proxy dd-default-production --namespace default
+```
+
+#### ls-deployments
+List Kubernetes deployments.
+
+```bash
+underpost run ls-deployments --namespace default
+```
+
+### Network & Exposure
+
+#### ipfs-expose
+Expose IPFS Cluster services.
+
+```bash
+underpost run ipfs-expose
+```
+
+#### ip-info
+Display IP-related information.
+
+```bash
+underpost run ip-info eth0
+```
+
+### System Configuration
+
+#### tz
+Set system timezone.
+
+```bash
+underpost run tz America/New_York
+```
+
+#### crypto-policy
+Set system crypto policies.
+
+```bash
+underpost run crypto-policy
+```
+
+#### git-conf
+Configure Git user settings.
+
+```bash
+underpost run git-conf username,email@example.com --logs
+```
+
+#### host-update
+Execute rocky-setup.sh to update host.
+
+```bash
+underpost run host-update
+```
+
+#### ide
+Open IDE or install Zed/Sublime Text.
+
+```bash
+underpost run ide /home/dd/engine
+underpost run ide install
+```
+
+### Process Management
+
+#### kill
+Kill processes by port numbers.
+
+```bash
+underpost run kill 3000,8080
+```
+
+#### daemon
+Run command as daemon process.
+
+```bash
+underpost run daemon "npm start"
+```
+
+### Testing & Utilities
+
+#### test-runner
+Execute test suites.
+
+```bash
+underpost run test-runner
+```
+
+#### benchmark
+Run performance benchmarks.
+
+```bash
+underpost run benchmark
+```
+
+## Examples
+
+### Deploy with blue-green switching
+
+```bash
+# Deploy to green version with 3 replicas
+underpost run sync dd-default,3,green --namespace production
+
+# Promote green to receive traffic
+underpost run promote dd-default,production,3 --namespace production
+```
+
+### Remote deployment via SSH
+
+```bash
+# Configure SSH credentials
+underpost ssh --user-add --user deploy --deploy-id dd-default
+
+# Deploy remotely
+underpost run ssh-deploy production --deploy-id dd-default --user deploy
+
+# Check status
+underpost run ssh-deploy-info --deploy-id dd-default --user deploy
+```
+
+### Development workflow
+
+```bash
+# Setup dev cluster
+underpost run dev-cluster --dev --namespace default
+
+# Deploy with local hosts
+underpost run dev-hosts-expose dd-default
+
+# Run tests in container
+underpost run dd-container "npm test" --dev
+
+# Clean up
+underpost run dev-hosts-restore
+```
+
+### Database operations
+
+```bash
+# Import database
+underpost run ssh-deploy-db dd-default --deploy-id dd-default --user root
+
+# Check database stats
+underpost run ssh-deploy-db-status dd --deploy-id dd-default --user root
+
+# Rollback 3 commits
+underpost run ssh-deploy-db-rollback dd-default,3 --deploy-id dd-default --user root
+```
+
+## Related Commands
+
+- [`underpost deploy`](/cli/commands/deploy) - Direct deployment management
+- [`underpost cluster`](/cli/commands/cluster) - Cluster initialization
+- [`underpost ssh`](/cli/commands/ssh) - SSH credential management
+- [`underpost db`](/cli/commands/db) - Database operations
+- [`underpost cron`](/cli/commands/cron) - Scheduled job management

@@ -1,0 +1,382 @@
+---
+title: underpost metadata
+description: Manage cluster metadata operations including import, export, and generation
+---
+
+The `underpost metadata` command manages cluster metadata operations, providing tools to import, export, and generate metadata for deployments, cron jobs, and instances.
+
+## Usage
+
+```bash
+underpost metadata [deploy-id] [host] [path] [options]
+```
+
+## Arguments
+
+<ParamField path="deploy-id" type="string" optional>
+  The deployment ID to manage metadata for.
+
+  ```bash
+  underpost metadata dd-default
+  ```
+</ParamField>
+
+<ParamField path="host" type="string" optional>
+  The host to manage metadata for.
+
+  ```bash
+  underpost metadata dd-default example.com
+  ```
+</ParamField>
+
+<ParamField path="path" type="string" optional>
+  The path to manage metadata for.
+
+  ```bash
+  underpost metadata dd-default example.com /api
+  ```
+</ParamField>
+
+## Options
+
+### Operation Options
+
+<ParamField path="--import" type="boolean">
+  Imports metadata from local storage.
+
+  ```bash
+  underpost metadata dd-default --import
+  ```
+</ParamField>
+
+<ParamField path="--export" type="boolean">
+  Exports metadata to local storage.
+
+  ```bash
+  underpost metadata dd-default --export
+  ```
+</ParamField>
+
+<ParamField path="--generate" type="boolean">
+  Generates cluster metadata for the specified deployment.
+
+  ```bash
+  underpost metadata dd-default --generate
+  ```
+</ParamField>
+
+### Data Collection Options
+
+<ParamField path="--crons" type="boolean">
+  Apply operation to cron data collection.
+
+  ```bash
+  underpost metadata dd-default --export --crons
+  ```
+</ParamField>
+
+<ParamField path="--instances" type="boolean">
+  Apply operation to instance data collection.
+
+  ```bash
+  underpost metadata dd-default --import --instances
+  ```
+</ParamField>
+
+### Execution Context
+
+<ParamField path="--itc" type="boolean">
+  Apply operation under container execution context.
+
+  ```bash
+  underpost metadata dd-default --export --itc
+  ```
+</ParamField>
+
+## Examples
+
+### Export Cluster Metadata
+
+```bash
+underpost metadata dd-default --export
+```
+
+### Import Cluster Metadata
+
+```bash
+underpost metadata dd-default --import
+```
+
+### Generate New Metadata
+
+```bash
+underpost metadata dd-default --generate
+```
+
+### Export Cron Metadata
+
+```bash
+underpost metadata dd-default --export --crons
+```
+
+### Export Instance Metadata
+
+```bash
+underpost metadata dd-default --export --instances
+```
+
+### Import All Data Collections
+
+```bash
+# Import cron metadata
+underpost metadata dd-default --import --crons
+
+# Import instance metadata
+underpost metadata dd-default --import --instances
+```
+
+### Export from Container Context
+
+```bash
+underpost metadata dd-default --export --itc
+```
+
+### Complete Metadata Workflow
+
+<Steps>
+  <Step title="Generate metadata">
+    ```bash
+    underpost metadata dd-production --generate
+    ```
+  </Step>
+  
+  <Step title="Export to local storage">
+    ```bash
+    underpost metadata dd-production --export
+    ```
+  </Step>
+  
+  <Step title="Backup exported metadata">
+    ```bash
+    cp -r ./metadata-backup ./metadata-backup-$(date +%Y%m%d)
+    ```
+  </Step>
+</Steps>
+
+### Disaster Recovery Workflow
+
+<Steps>
+  <Step title="Locate metadata backup">
+    ```bash
+    ls -la ./metadata-backup
+    ```
+  </Step>
+  
+  <Step title="Import metadata">
+    ```bash
+    underpost metadata dd-production --import
+    ```
+  </Step>
+  
+  <Step title="Import cron configurations">
+    ```bash
+    underpost metadata dd-production --import --crons
+    ```
+  </Step>
+  
+  <Step title="Import instance configurations">
+    ```bash
+    underpost metadata dd-production --import --instances
+    ```
+  </Step>
+  
+  <Step title="Verify restored metadata">
+    ```bash
+    underpost metadata dd-production --generate
+    ```
+  </Step>
+</Steps>
+
+### Host-Specific Metadata
+
+```bash
+# Export metadata for specific host
+underpost metadata dd-api api.example.com --export
+
+# Import metadata for specific host
+underpost metadata dd-api api.example.com --import
+```
+
+### Path-Specific Metadata
+
+```bash
+# Export metadata for specific path
+underpost metadata dd-api api.example.com /v1 --export
+
+# Import metadata for specific path
+underpost metadata dd-api api.example.com /v1 --import
+```
+
+## Use Cases
+
+### Backup and Restore
+
+Regularly export metadata for backup:
+
+```bash
+# Daily backup script
+#!/bin/bash
+DATE=$(date +%Y%m%d)
+underpost metadata dd-production --export
+cp -r ./metadata-backup ./backups/metadata-$DATE
+```
+
+### Migration Between Clusters
+
+```bash
+# Export from source cluster
+underpost metadata dd-source --export --crons --instances
+
+# Copy to destination
+scp -r ./metadata-backup user@dest-server:/path/to/metadata
+
+# Import on destination cluster
+underpost metadata dd-dest --import --crons --instances
+```
+
+### Configuration Versioning
+
+```bash
+# Export current configuration
+underpost metadata dd-default --export
+
+# Commit to version control
+git add metadata-backup/
+git commit -m "Update cluster metadata"
+git push
+```
+
+### Testing and Development
+
+```bash
+# Generate test metadata
+underpost metadata dd-dev --generate
+
+# Export for sharing
+underpost metadata dd-dev --export
+
+# Share with team
+tar -czf dev-metadata.tar.gz metadata-backup/
+```
+
+## Metadata Storage
+
+Metadata is typically stored in:
+
+```
+./metadata-backup/
+├── crons/
+│   ├── dd-default-cron-backup.json
+│   └── dd-default-cron-jobs.json
+└── instances/
+    ├── dd-default-instances.json
+    └── dd-default-instance-configs.json
+```
+
+## Best Practices
+
+### Regular Backups
+
+```bash
+# Setup cron job for automated backups
+0 2 * * * /usr/local/bin/underpost metadata dd-production --export
+```
+
+### Version Control
+
+```bash
+# Track metadata changes
+git add metadata-backup/
+git commit -m "chore: update cluster metadata"
+```
+
+### Pre-Deployment Export
+
+```bash
+# Before major changes
+underpost metadata dd-production --export
+cp -r metadata-backup metadata-backup-pre-deploy
+```
+
+### Container Execution
+
+For operations within containers:
+
+```bash
+underpost metadata dd-default --export --itc
+```
+
+## Integration with Other Commands
+
+### With Database Backup
+
+```bash
+# Export metadata
+underpost metadata dd-production --export
+
+# Export database
+underpost db dd-production --export
+```
+
+### With Deployment
+
+```bash
+# Generate metadata before deployment
+underpost metadata dd-production --generate
+
+# Deploy
+underpost deploy dd-production production
+```
+
+### With Cron Jobs
+
+```bash
+# Export cron metadata
+underpost metadata dd-default --export --crons
+
+# Update cron jobs
+underpost cron dd-default --apply
+```
+
+## Troubleshooting
+
+### Import Fails
+
+If import fails, verify metadata files exist:
+
+```bash
+ls -la metadata-backup/
+```
+
+### Export Path Issues
+
+Ensure write permissions:
+
+```bash
+chmod 755 ./metadata-backup
+```
+
+### Container Context Issues
+
+When using `--itc`, ensure container is running:
+
+```bash
+kubectl get pods | grep dd-default
+```
+
+## Related Commands
+
+- [underpost deploy](/cli/commands/deploy) - Manage deployments
+- [underpost db](/cli/commands/db) - Database operations
+- [underpost cron](/cli/commands/cron) - Manage cron jobs
+- [underpost cluster](/cli/commands/cluster) - Manage Kubernetes clusters
