@@ -1,0 +1,163 @@
+{
+  "projectType": "framework",
+  "projectName": "Underpost",
+  "projectDescription": "Full-stack PWA and API-REST framework with microservices architecture, comprehensive CLI tools, and end-to-end CI/CD capabilities",
+  "theme": "aspen",
+  "primaryColor": "#0891b2",
+  "lightColor": "#06b6d4",
+  "darkColor": "#0e7490",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Documentation",
+        "groups": [
+          {
+            "group": "Get Started",
+            "pages": [
+              "introduction",
+              "quickstart",
+              "installation"
+            ]
+          },
+          {
+            "group": "Core Concepts",
+            "pages": [
+              "concepts/architecture",
+              "concepts/configuration",
+              "concepts/components",
+              "concepts/routing"
+            ]
+          },
+          {
+            "group": "Development Guides",
+            "pages": [
+              "guides/pwa-development",
+              "guides/api-development",
+              "guides/client-components",
+              "guides/database-setup",
+              "guides/authentication"
+            ]
+          },
+          {
+            "group": "Deployment",
+            "pages": [
+              "deployment/overview",
+              "deployment/docker",
+              "deployment/kubernetes",
+              "deployment/baremetal"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "CLI Reference",
+        "groups": [
+          {
+            "group": "Overview",
+            "pages": [
+              "cli/overview",
+              "cli/getting-started"
+            ]
+          },
+          {
+            "group": "Project Commands",
+            "pages": [
+              "cli/commands/new",
+              "cli/commands/start",
+              "cli/commands/build"
+            ]
+          },
+          {
+            "group": "Git & Repository",
+            "pages": [
+              "cli/commands/clone",
+              "cli/commands/pull",
+              "cli/commands/commit",
+              "cli/commands/push"
+            ]
+          },
+          {
+            "group": "Deployment & Infrastructure",
+            "pages": [
+              "cli/commands/deploy",
+              "cli/commands/cluster",
+              "cli/commands/image",
+              "cli/commands/baremetal"
+            ]
+          },
+          {
+            "group": "Database & Storage",
+            "pages": [
+              "cli/commands/db",
+              "cli/commands/fs"
+            ]
+          },
+          {
+            "group": "Monitoring & Operations",
+            "pages": [
+              "cli/commands/monitor",
+              "cli/commands/test",
+              "cli/commands/cron"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Server API",
+            "pages": [
+              "api/server/overview",
+              "api/server/core",
+              "api/server/user",
+              "api/server/file",
+              "api/server/document"
+            ]
+          },
+          {
+            "group": "Client Components",
+            "pages": [
+              "api/client/overview",
+              "api/client/core-components",
+              "api/client/ui-components",
+              "api/client/services"
+            ]
+          },
+          {
+            "group": "Configuration",
+            "pages": [
+              "api/configuration/server",
+              "api/configuration/client",
+              "api/configuration/database"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Full-stack PWA framework with offline support",
+    "RESTful API microservices architecture",
+    "Comprehensive CLI with 20+ commands for CI/CD",
+    "Client-side component system with 50+ reusable components",
+    "Multi-database support (MongoDB, MariaDB, PostgreSQL, Valkey)",
+    "Kubernetes and Docker deployment automation",
+    "Real-time communication with Socket.IO and WebRTC",
+    "Built-in authentication and authorization",
+    "Server-side rendering (SSR) capabilities",
+    "Development and production build pipelines"
+  ],
+  "publicApiSurface": [
+    "underpost new <app-name>",
+    "underpost start <deploy-id>",
+    "underpost deploy",
+    "underpost cluster",
+    "underpost db",
+    "underpost image",
+    "Server APIs: /api/core, /api/user, /api/file, /api/document",
+    "Client Components: CommonJs, Router, Auth, Modal, AgGrid, SocketIo",
+    "Configuration: DefaultConf (client, server, ssr, cron)",
+    "Database Models: User, File, Document, Instance"
+  ]
+}
